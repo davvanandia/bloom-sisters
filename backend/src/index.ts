@@ -45,7 +45,7 @@ app.get('/health', async (req, res) => {
       status: 'OK', 
       timestamp: new Date().toISOString(),
       service: 'Bloom Sisters API',
-      environment: process.env.NODE_ENV || 'development',
+      environment: process.env.NODE_ENV,
       port: PORT,
       database: 'connected',
       nodeVersion: process.version
@@ -132,7 +132,7 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
   res.status(statusCode).json({
     success: false,
     error: message,
-    ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
+    ...(process.env.NODE_ENV && { stack: err.stack })
   });
 });
 
@@ -140,7 +140,7 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
 const startServer = async () => {
   try {
     console.log('🚀 Starting Bloom Sisters Backend...');
-    console.log(`📁 Environment: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`📁 Environment: ${process.env.NODE_ENV}`);
     
     // Test database connection
     console.log('🔌 Testing database connection...');

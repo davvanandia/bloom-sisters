@@ -345,7 +345,7 @@ router.post('/notification', async (req: Request, res: Response) => {
     res.status(500).json({ 
       success: false, 
       error: error.message || 'Failed to process notification',
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      stack: process.env.NODE_ENV ? error.stack : undefined
     });
   }
 });

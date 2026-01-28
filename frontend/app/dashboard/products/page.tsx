@@ -63,7 +63,7 @@ export default function ProductsPage() {
       setError(err.message || 'Failed to load products');
       
       // Fallback to mock data for development
-      if (process.env.NODE_ENV === 'development') {
+      if (process.env.NODE_ENV) {
         const mockProducts: Product[] = [
           {
             id: '1',

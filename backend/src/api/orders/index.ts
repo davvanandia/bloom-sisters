@@ -544,7 +544,7 @@ router.get('/', roleMiddleware(['ADMIN', 'SUPERADMIN']), async (req: Request, re
     res.status(500).json({ 
       success: false, 
       error: error.message || 'Failed to fetch orders',
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      stack: process.env.NODE_ENV ? error.stack : undefined
     });
   }
 });
@@ -1055,7 +1055,7 @@ router.get('/status/counts', roleMiddleware(['ADMIN', 'SUPERADMIN']), async (req
     res.status(500).json({ 
       success: false, 
       error: error.message || 'Failed to fetch order counts',
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      stack: process.env.NODE_ENV ? error.stack : undefined
     });
   }
 });
