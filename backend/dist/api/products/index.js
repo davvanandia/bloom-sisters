@@ -32,23 +32,41 @@ const generateSlug = (name) => {
         .replace(/[\s_-]+/g, '-')
         .replace(/^-+|-+$/g, '');
 };
-// Apply auth middleware untuk semua routes
-router.use(auth_1.authMiddleware);
-// GET /api/products - Get all products (public) dengan filter
+// 🔵 GET /api/products - Get all products (PUBLIC - tanpa auth)
 router.get('/', async (req, res) => {
     try {
-        const { page = '1', limit = '10', category, featured, active, minPrice, maxPrice, search, sortBy = 'createdAt', sortOrder = 'desc' } = req.query;
+        const { page = '1', limit = '10', category, featured, active = 'true', // Default true untuk public
+        minPrice, maxPrice, search, sortBy = 'createdAt', sortOrder = 'desc' } = req.query;
         const pageNum = parseInt(page);
         const limitNum = parseInt(limit);
         const skip = (pageNum - 1) * limitNum;
-        // Build filter
-        const where = {};
+        // Build filter - untuk public hanya tampilkan produk aktif
+        const where = {
+            active: true
+        };
         if (category)
             where.category = category;
         if (featured !== undefined)
             where.featured = featured === 'true';
-        if (active !== undefined)
-            where.active = active === 'true';
+        // Cek jika user adalah admin (dari token)
+        const authHeader = req.headers.authorization;
+        if (authHeader && authHeader.startsWith('Bearer ')) {
+            try {
+                const token = authHeader.split(' ')[1];
+                const jwt = require('jsonwebtoken');
+                const decoded = jwt.verify(token, process.env.JWT_SECRET);
+                // Jika admin, bisa filter berdasarkan active
+                if (decoded.role === 'ADMIN' || decoded.role === 'SUPERADMIN') {
+                    delete where.active; // Admin bisa lihat semua
+                    if (active !== undefined)
+                        where.active = active === 'true';
+                }
+            }
+            catch (error) {
+                // Token invalid, tetap sebagai public user
+                console.log('Token invalid or expired, using public access');
+            }
+        }
         if (minPrice !== undefined || maxPrice !== undefined) {
             where.price = {};
             if (minPrice)
@@ -105,12 +123,33 @@ router.get('/', async (req, res) => {
         res.status(500).json({ success: false, error: 'Internal server error' });
     }
 });
-// GET /api/products/:id - Get product by ID (public)
+// 🔵 GET /api/products/:id - Get product by ID (PUBLIC - tanpa auth)
 router.get('/:id', async (req, res) => {
     try {
         const { id } = req.params;
+        // Cek jika user adalah admin (dari token)
+        let isAdmin = false;
+        const authHeader = req.headers.authorization;
+        if (authHeader && authHeader.startsWith('Bearer ')) {
+            try {
+                const token = authHeader.split(' ')[1];
+                const jwt = require('jsonwebtoken');
+                const decoded = jwt.verify(token, process.env.JWT_SECRET);
+                isAdmin = decoded.role === 'ADMIN' || decoded.role === 'SUPERADMIN';
+            }
+            catch (error) {
+                // Token invalid, bukan admin
+                console.log('Token invalid or expired, using public access');
+            }
+        }
+        // Build where condition
+        const where = { id };
+        // Public users hanya bisa melihat produk aktif
+        if (!isAdmin) {
+            where.active = true;
+        }
         const product = await prisma_1.default.product.findUnique({
-            where: { id },
+            where,
             include: {
                 orderItems: {
                     select: {
@@ -143,8 +182,10 @@ router.get('/:id', async (req, res) => {
         res.status(500).json({ success: false, error: 'Internal server error' });
     }
 });
+// 🟠 Routes berikutnya memerlukan auth (Admin only)
+// Gunakan authMiddleware sebelum roleMiddleware
 // POST /api/products - Create product dengan gambar (Admin only)
-router.post('/', (0, auth_1.roleMiddleware)(['ADMIN', 'SUPERADMIN']), upload_1.uploadMultiple, async (req, res) => {
+router.post('/', auth_1.authMiddleware, (0, auth_1.roleMiddleware)(['ADMIN', 'SUPERADMIN']), upload_1.uploadMultiple, async (req, res) => {
     try {
         // Validasi user
         if (!req.user) {
@@ -166,7 +207,7 @@ router.post('/', (0, auth_1.roleMiddleware)(['ADMIN', 'SUPERADMIN']), upload_1.u
         const validationResult = productSchema.safeParse({
             name,
             description,
-            price: parseFloat(price),
+            price: parseFloat(price), // Langsung parse float, TANPA konversi
             stock: parseInt(stock),
             category,
             featured: featured === 'true',
@@ -238,7 +279,7 @@ router.post('/', (0, auth_1.roleMiddleware)(['ADMIN', 'SUPERADMIN']), upload_1.u
     }
 });
 // PUT /api/products/:id - Update product dengan gambar (Admin only)
-router.put('/:id', (0, auth_1.roleMiddleware)(['ADMIN', 'SUPERADMIN']), upload_1.uploadMultiple, async (req, res) => {
+router.put('/:id', auth_1.authMiddleware, (0, auth_1.roleMiddleware)(['ADMIN', 'SUPERADMIN']), upload_1.uploadMultiple, async (req, res) => {
     try {
         const { id } = req.params;
         // Check if product exists
@@ -338,7 +379,7 @@ router.put('/:id', (0, auth_1.roleMiddleware)(['ADMIN', 'SUPERADMIN']), upload_1
     }
 });
 // DELETE /api/products/:id - Delete product (Admin only)
-router.delete('/:id', (0, auth_1.roleMiddleware)(['ADMIN', 'SUPERADMIN']), async (req, res) => {
+router.delete('/:id', auth_1.authMiddleware, (0, auth_1.roleMiddleware)(['ADMIN', 'SUPERADMIN']), async (req, res) => {
     try {
         const { id } = req.params;
         // Check if product exists
@@ -379,28 +420,6 @@ router.delete('/:id', (0, auth_1.roleMiddleware)(['ADMIN', 'SUPERADMIN']), async
             success: false,
             error: 'Internal server error'
         });
-    }
-});
-// GET /api/products/categories - Get all product categories
-router.get('/api/categories', async (req, res) => {
-    try {
-        const categories = await prisma_1.default.product.findMany({
-            distinct: ['category'],
-            select: {
-                category: true
-            },
-            where: {
-                active: true
-            }
-        });
-        res.json({
-            success: true,
-            data: categories.map(c => c.category)
-        });
-    }
-    catch (error) {
-        console.error('Error getting categories:', error);
-        res.status(500).json({ success: false, error: 'Internal server error' });
     }
 });
 exports.default = router;

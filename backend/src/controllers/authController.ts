@@ -87,7 +87,7 @@ export const register = async (req: Request, res: Response) => {
     res.status(500).json({ 
       success: false,
       error: 'Internal server error',
-      details: process.env.NODE_ENV ? error.message : undefined
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 };
@@ -190,7 +190,7 @@ export const login = async (req: Request, res: Response) => {
     res.status(500).json({ 
       success: false,
       error: 'Internal server error',
-      details: process.env.NODE_ENV ? error.message : undefined
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 };
@@ -261,7 +261,7 @@ export const googleAuth = async (req: Request, res: Response) => {
     res.status(500).json({ 
       success: false,
       error: 'Internal server error',
-      details: process.env.NODE_ENV ? error.message : undefined
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 };

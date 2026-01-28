@@ -14,6 +14,7 @@ const prisma_1 = __importDefault(require("./lib/prisma"));
 dotenv_1.default.config();
 const app = (0, express_1.default)();
 const PORT = process.env.PORT || 3000;
+const IP_NETWORK = process.env.IP_NETWORK;
 // Logging middleware
 app.use((req, res, next) => {
     console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
@@ -40,7 +41,7 @@ app.get('/health', async (req, res) => {
             status: 'OK',
             timestamp: new Date().toISOString(),
             service: 'Bloom Sisters API',
-            environment: process.env.NODE_ENV || 'development',
+            environment: process.env.NODE_ENV,
             port: PORT,
             database: 'connected',
             nodeVersion: process.version
@@ -121,14 +122,14 @@ app.use((err, req, res, next) => {
     res.status(statusCode).json({
         success: false,
         error: message,
-        ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
+        ...(process.env.NODE_ENV && { stack: err.stack })
     });
 });
 // Start server
 const startServer = async () => {
     try {
         console.log('🚀 Starting Bloom Sisters Backend...');
-        console.log(`📁 Environment: ${process.env.NODE_ENV || 'development'}`);
+        console.log(`📁 Environment: ${process.env.NODE_ENV}`);
         // Test database connection
         console.log('🔌 Testing database connection...');
         await prisma_1.default.$connect();
@@ -140,10 +141,10 @@ const startServer = async () => {
             console.log(`
 ✅ Bloom Sisters Backend is running!
 📡 Port: ${PORT}
-🌐 Health Check: http://localhost:${PORT}/health
-🔗 API Base: http://localhost:${PORT}/api
+🌐 Health Check: ${IP_NETWORK}:${PORT}/health
+🔗 API Base: ${IP_NETWORK}:${PORT}/api
 🎯 Frontend: ${process.env.FRONTEND_URL}
-📊 Debug Test: http://localhost:${PORT}/api/debug/test
+📊 Debug Test: ${IP_NETWORK}:${PORT}/api/debug/test
       `);
         });
     }

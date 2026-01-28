@@ -132,7 +132,7 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
   res.status(statusCode).json({
     success: false,
     error: message,
-    ...(process.env.NODE_ENV && { stack: err.stack })
+    ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
   });
 });
 

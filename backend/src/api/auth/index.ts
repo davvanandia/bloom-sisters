@@ -227,7 +227,8 @@ router.post('/forgot-password', async (req: Request, res: Response) => {
       return res.status(500).json({
         success: false,
         error: 'Failed to send reset email. Please try again later.',
-        debug: process.env.NODE_ENV ? emailResult.error : undefined
+        // Hanya tampilkan detail error di lingkungan development
+        debug: process.env.NODE_ENV === 'development' ? emailResult.error : undefined
       });
     }
     
@@ -235,7 +236,7 @@ router.post('/forgot-password', async (req: Request, res: Response) => {
       success: true,
       message: 'If the email exists in our system, you will receive a reset link shortly.',
       // Hanya di development, kirim token untuk testing
-      ...(process.env.NODE_ENV && { 
+      ...(process.env.NODE_ENV === 'development' && { 
         resetToken,
         note: 'Token shown only in development mode'
       })

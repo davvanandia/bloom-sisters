@@ -11,6 +11,9 @@ const vouchers_1 = __importDefault(require("./vouchers"));
 const orders_1 = __importDefault(require("./orders"));
 const logs_1 = __importDefault(require("./logs"));
 const profile_1 = __importDefault(require("./profile")); // Add this line
+const categories_1 = __importDefault(require("./categories")); // Tambahkan ini
+const cart_1 = __importDefault(require("./cart"));
+const payment_1 = __importDefault(require("./payment"));
 const router = (0, express_1.Router)();
 // Mount semua API routes
 router.use('/auth', auth_1.default);
@@ -20,4 +23,7 @@ router.use('/vouchers', vouchers_1.default);
 router.use('/orders', orders_1.default);
 router.use('/logs', logs_1.default);
 router.use('/profile', profile_1.default); // Add this line
+router.use('/categories', categories_1.default); // Tambahkan ini
+router.use('/cart', cart_1.default);
+router.use('/payment', payment_1.default);
 exports.default = router;

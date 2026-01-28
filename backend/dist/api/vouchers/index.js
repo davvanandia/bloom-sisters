@@ -6,7 +6,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const auth_1 = require("../../middleware/auth");
 const prisma_1 = __importDefault(require("../../lib/prisma"));
+const validate_1 = __importDefault(require("./validate"));
 const router = (0, express_1.Router)();
+router.use(validate_1.default);
 // Apply auth middleware untuk semua routes
 router.use(auth_1.authMiddleware);
 // GET /api/vouchers - Get all vouchers (Admin/Superadmin)
@@ -34,7 +36,7 @@ router.post('/', (0, auth_1.roleMiddleware)(['ADMIN', 'SUPERADMIN']), async (req
         if (!code || !discount || !type) {
             return res.status(400).json({
                 success: false,
-                error: 'Code, discount, and type are required'
+                error: 'Kode, diskon, dan tipe wajib diisi'
             });
         }
         // Check if voucher code exists
@@ -44,14 +46,21 @@ router.post('/', (0, auth_1.roleMiddleware)(['ADMIN', 'SUPERADMIN']), async (req
         if (existingVoucher) {
             return res.status(400).json({
                 success: false,
-                error: 'Voucher code already exists'
+                error: 'Kode voucher sudah digunakan'
             });
         }
         // Validate percentage discount
         if (type === 'PERCENTAGE' && (discount < 1 || discount > 100)) {
             return res.status(400).json({
                 success: false,
-                error: 'Percentage discount must be between 1 and 100'
+                error: 'Diskon persentase harus antara 1 dan 100'
+            });
+        }
+        // Validate fixed amount discount
+        if (type === 'FIXED' && discount <= 0) {
+            return res.status(400).json({
+                success: false,
+                error: 'Diskon nominal harus lebih dari 0'
             });
         }
         // Create voucher
@@ -81,11 +90,10 @@ router.post('/', (0, auth_1.roleMiddleware)(['ADMIN', 'SUPERADMIN']), async (req
         }
         catch (logError) {
             console.error('Failed to create activity log:', logError);
-            // Jangan gagal hanya karena log error
         }
         res.status(201).json({
             success: true,
-            message: 'Voucher created successfully',
+            message: 'Voucher berhasil dibuat',
             data: voucher
         });
     }
@@ -102,7 +110,7 @@ router.get('/:id', (0, auth_1.roleMiddleware)(['ADMIN', 'SUPERADMIN']), async (r
             where: { id }
         });
         if (!voucher) {
-            return res.status(404).json({ success: false, error: 'Voucher not found' });
+            return res.status(404).json({ success: false, error: 'Voucher tidak ditemukan' });
         }
         res.json({
             success: true,
@@ -124,7 +132,7 @@ router.put('/:id', (0, auth_1.roleMiddleware)(['ADMIN', 'SUPERADMIN']), async (r
             where: { id }
         });
         if (!existingVoucher) {
-            return res.status(404).json({ success: false, error: 'Voucher not found' });
+            return res.status(404).json({ success: false, error: 'Voucher tidak ditemukan' });
         }
         // Check if new code already exists (if code is being changed)
         if (code && code.toUpperCase() !== existingVoucher.code) {
@@ -134,9 +142,23 @@ router.put('/:id', (0, auth_1.roleMiddleware)(['ADMIN', 'SUPERADMIN']), async (r
             if (duplicateVoucher) {
                 return res.status(400).json({
                     success: false,
-                    error: 'Voucher code already exists'
+                    error: 'Kode voucher sudah digunakan'
                 });
             }
+        }
+        // Validate percentage discount
+        if (type === 'PERCENTAGE' && discount && (discount < 1 || discount > 100)) {
+            return res.status(400).json({
+                success: false,
+                error: 'Diskon persentase harus antara 1 dan 100'
+            });
+        }
+        // Validate fixed amount discount
+        if (type === 'FIXED' && discount && discount <= 0) {
+            return res.status(400).json({
+                success: false,
+                error: 'Diskon nominal harus lebih dari 0'
+            });
         }
         // Update voucher
         const updatedVoucher = await prisma_1.default.voucher.update({
@@ -168,7 +190,7 @@ router.put('/:id', (0, auth_1.roleMiddleware)(['ADMIN', 'SUPERADMIN']), async (r
         }
         res.json({
             success: true,
-            message: 'Voucher updated successfully',
+            message: 'Voucher berhasil diperbarui',
             data: updatedVoucher
         });
     }
@@ -185,7 +207,7 @@ router.put('/:id/toggle', (0, auth_1.roleMiddleware)(['ADMIN', 'SUPERADMIN']), a
             where: { id }
         });
         if (!voucher) {
-            return res.status(404).json({ success: false, error: 'Voucher not found' });
+            return res.status(404).json({ success: false, error: 'Voucher tidak ditemukan' });
         }
         const updatedVoucher = await prisma_1.default.voucher.update({
             where: { id },
@@ -207,7 +229,7 @@ router.put('/:id/toggle', (0, auth_1.roleMiddleware)(['ADMIN', 'SUPERADMIN']), a
         }
         res.json({
             success: true,
-            message: `Voucher ${updatedVoucher.isActive ? 'activated' : 'deactivated'}`,
+            message: `Voucher berhasil ${updatedVoucher.isActive ? 'diaktifkan' : 'dinonaktifkan'}`,
             data: updatedVoucher
         });
     }
@@ -216,20 +238,35 @@ router.put('/:id/toggle', (0, auth_1.roleMiddleware)(['ADMIN', 'SUPERADMIN']), a
         res.status(500).json({ success: false, error: error.message });
     }
 });
-// DELETE /api/vouchers/:id - Delete voucher (soft delete)
+// DELETE /api/vouchers/:id - Delete voucher (hard delete dengan pengecekan relasi)
 router.delete('/:id', (0, auth_1.roleMiddleware)(['ADMIN', 'SUPERADMIN']), async (req, res) => {
     try {
         const { id } = req.params;
+        // Cek apakah voucher ada
         const voucher = await prisma_1.default.voucher.findUnique({
-            where: { id }
+            where: { id },
+            include: {
+                orders: {
+                    take: 1 // Cek apakah ada order yang menggunakan voucher ini
+                }
+            }
         });
         if (!voucher) {
-            return res.status(404).json({ success: false, error: 'Voucher not found' });
+            return res.status(404).json({
+                success: false,
+                error: 'Voucher tidak ditemukan'
+            });
         }
-        // Soft delete: set isActive to false
-        await prisma_1.default.voucher.update({
-            where: { id },
-            data: { isActive: false }
+        // Cek apakah voucher sudah pernah digunakan di order
+        if (voucher.orders.length > 0) {
+            return res.status(400).json({
+                success: false,
+                error: 'Voucher tidak dapat dihapus karena sudah digunakan dalam pesanan. Gunakan fitur nonaktifkan voucher.'
+            });
+        }
+        // Hard delete voucher (karena tidak ada relasi order)
+        await prisma_1.default.voucher.delete({
+            where: { id }
         });
         // Log activity
         try {
@@ -247,11 +284,18 @@ router.delete('/:id', (0, auth_1.roleMiddleware)(['ADMIN', 'SUPERADMIN']), async
         }
         res.json({
             success: true,
-            message: 'Voucher deleted successfully'
+            message: 'Voucher berhasil dihapus'
         });
     }
     catch (error) {
         console.error('Delete voucher error:', error);
+        // Handle foreign key constraint error
+        if (error.code === 'P2003' || error.message.includes('foreign key constraint')) {
+            return res.status(400).json({
+                success: false,
+                error: 'Voucher tidak dapat dihapus karena sudah digunakan. Gunakan fitur nonaktifkan voucher.'
+            });
+        }
         res.status(500).json({ success: false, error: error.message });
     }
 });
@@ -262,23 +306,39 @@ router.post('/apply', auth_1.authMiddleware, async (req, res) => {
         if (!code || (!orderId && !cartTotal)) {
             return res.status(400).json({
                 success: false,
-                error: 'Code and orderId or cartTotal are required'
+                error: 'Kode voucher dan orderId atau cartTotal diperlukan'
             });
         }
         // Find voucher
         const voucher = await prisma_1.default.voucher.findUnique({
-            where: { code: code.toUpperCase(), isActive: true }
+            where: { code: code.toUpperCase() }
         });
         if (!voucher) {
-            return res.status(404).json({ success: false, error: 'Voucher not found or inactive' });
+            return res.status(404).json({
+                success: false,
+                error: 'Voucher tidak ditemukan'
+            });
+        }
+        // Check if voucher is active
+        if (!voucher.isActive) {
+            return res.status(400).json({
+                success: false,
+                error: 'Voucher tidak aktif'
+            });
         }
         // Check expiry
         if (voucher.expiryDate && new Date() > new Date(voucher.expiryDate)) {
-            return res.status(400).json({ success: false, error: 'Voucher has expired' });
+            return res.status(400).json({
+                success: false,
+                error: 'Voucher sudah kedaluwarsa'
+            });
         }
         // Check max usage
         if (voucher.maxUsage && voucher.usageCount >= voucher.maxUsage) {
-            return res.status(400).json({ success: false, error: 'Voucher usage limit reached' });
+            return res.status(400).json({
+                success: false,
+                error: 'Voucher sudah mencapai batas penggunaan'
+            });
         }
         // Check minimum purchase
         let total = 0;
@@ -289,7 +349,7 @@ router.post('/apply', auth_1.authMiddleware, async (req, res) => {
             if (!order) {
                 return res.status(404).json({
                     success: false,
-                    error: 'Order not found'
+                    error: 'Pesanan tidak ditemukan'
                 });
             }
             total = order.total || 0;
@@ -300,7 +360,7 @@ router.post('/apply', auth_1.authMiddleware, async (req, res) => {
         if (voucher.minPurchase && total < voucher.minPurchase) {
             return res.status(400).json({
                 success: false,
-                error: `Minimum purchase of ${voucher.minPurchase} required`
+                error: `Minimal pembelian ${voucher.minPurchase} untuk menggunakan voucher ini`
             });
         }
         // Calculate discount
@@ -347,7 +407,7 @@ router.post('/apply', auth_1.authMiddleware, async (req, res) => {
         }
         res.json({
             success: true,
-            message: 'Voucher applied successfully',
+            message: 'Voucher berhasil digunakan',
             data: {
                 voucher,
                 originalTotal: total,

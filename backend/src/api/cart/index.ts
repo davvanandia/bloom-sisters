@@ -203,10 +203,11 @@ router.put('/:itemId', authMiddleware, async (req: any, res) => {
     const { itemId } = req.params;
     const { quantity } = req.body;
     
-    if (!quantity || quantity < 0) {
+    // Allow quantity 0 (handled as delete below), but reject negative or missing values
+    if (quantity === undefined || quantity === null || quantity < 0) {
       return res.status(400).json({ 
         success: false, 
-        error: 'Quantity must be positive' 
+        error: 'Quantity must be zero or a positive number' 
       });
     }
     
