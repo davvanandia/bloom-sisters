@@ -81,7 +81,7 @@ export default function TransactionsPage() {
   const [syncingOrders, setSyncingOrders] = useState<SyncStatus>({});
   const [showSyncSettings, setShowSyncSettings] = useState(false);
   
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+  const API_URL = process.env.NEXT_PUBLIC_API_URL;
   const autoSyncRef = useRef<NodeJS.Timeout | null>(null);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);

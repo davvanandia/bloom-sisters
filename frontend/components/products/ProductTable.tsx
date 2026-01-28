@@ -86,7 +86,7 @@ export default function ProductTable({
                     <div className="h-12 w-12 flex-shrink-0 rounded-lg overflow-hidden bg-gray-700">
                       {product.images && product.images[0] ? (
                         <img
-                          src={product.images[0].startsWith('http') ? product.images[0] : `http://localhost:5000${product.images[0]}`}
+                          src={product.images[0].startsWith('http') ? product.images[0] : `${process.env.BACKEND}/${product.images[0]}`}
                           alt={product.name}
                           className="h-full w-full object-cover"
                           onError={(e) => {

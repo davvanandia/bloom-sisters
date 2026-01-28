@@ -206,7 +206,7 @@ const handleSubmit = (e: React.FormEvent) => {
 
   const getImageUrl = (url: string) => {
     if (url.startsWith('http')) return url;
-    if (url.startsWith('/uploads/')) return `http://localhost:5000${url}`;
+    if (url.startsWith('/uploads/')) return `${process.env.BACKEND}/${url}`;
     return url;
   };
 

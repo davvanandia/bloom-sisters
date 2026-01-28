@@ -122,9 +122,9 @@ router.post('/create', authMiddleware, async (req: Request, res: Response) => {
       item_details: itemDetails,
       customer_details: customerDetails,
       callbacks: {
-        finish: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/order/success?orderId=${orderId}`,
-        error: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/order/failed?orderId=${orderId}`,
-        pending: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/order/pending?orderId=${orderId}`
+        finish: `${process.env.FRONTEND_URL}/order/success?orderId=${orderId}`,
+        error: `${process.env.FRONTEND_URL}/order/failed?orderId=${orderId}`,
+        pending: `${process.env.FRONTEND_URL}/order/pending?orderId=${orderId}`
       },
       expiry: {
         unit: 'hours',

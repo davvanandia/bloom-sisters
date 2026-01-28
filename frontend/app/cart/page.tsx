@@ -41,7 +41,7 @@ export default function CartPage() {
   const [user, setUser] = useState<any>(null);
   
   const FREE_SHIPPING_THRESHOLD = 500000;
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+  const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
   useEffect(() => {
     loadCartItems();
