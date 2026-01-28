@@ -1,0 +1,416 @@
+@host = http://localhost:5000
+@contentType = application/json
+
+##################################################
+### 1. LOGIN UNTUK MENDAPATKAN TOKEN
+##################################################
+
+### Login Superadmin
+# @name superadminLogin
+POST {{host}}/api/auth/login
+Content-Type: {{contentType}}
+
+{
+  "email": "superadmin@example.com",
+  "password": "superpass123"
+}
+
+### Login Admin
+# @name adminLogin
+POST {{host}}/api/auth/login
+Content-Type: {{contentType}}
+
+{
+  "email": "admin@example.com",
+  "password": "adminpass123"
+}
+
+### Login Regular User
+# @name userLogin
+POST {{host}}/api/auth/login
+Content-Type: {{contentType}}
+
+{
+  "email": "regular@example.com",
+  "password": "userpass123"
+}
+
+##################################################
+### 2. SIMPAN TOKEN KE VARIABEL
+##################################################
+@superadminToken = {{superadminLogin.response.body.token}}
+@adminToken = {{adminLogin.response.body.token}}
+@userToken = {{userLogin.response.body.token}}
+
+##################################################
+### 3. API LOGS - GET ALL LOGS DENGAN FILTER
+##################################################
+
+### 3.1 GET ALL LOGS - Regular User (should fail - 403)
+GET {{host}}/api/logs
+Authorization: Bearer {{userToken}}
+Content-Type: {{contentType}}
+
+### 3.2 GET ALL LOGS - Admin (should succeed)
+GET {{host}}/api/logs
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+### 3.3 GET ALL LOGS - Superadmin (should succeed)
+GET {{host}}/api/logs
+Authorization: Bearer {{superadminToken}}
+Content-Type: {{contentType}}
+
+### 3.4 GET LOGS WITH PAGINATION
+GET {{host}}/api/logs?page=1&limit=10
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+### 3.5 GET LOGS WITH SEARCH
+GET {{host}}/api/logs?search=login
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+### 3.6 GET LOGS WITH ACTION FILTER
+GET {{host}}/api/logs?action=LOGIN
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+### 3.7 GET LOGS WITH DATE RANGE
+GET {{host}}/api/logs?startDate=2024-01-01&endDate=2024-12-31
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+### 3.8 GET LOGS WITH USER ID FILTER (get userId from previous response)
+# First, get logs to find a userId
+GET {{host}}/api/logs?limit=1
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+> {%
+    // This script runs after the request
+    const response = response.body;
+    if (response.success && response.data.length > 0) {
+        client.global.set("testUserId", response.data[0].user.id);
+    }
+%}
+
+### Then use the userId
+GET {{host}}/api/logs?userId={{testUserId}}
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+### 3.9 GET LOGS WITH MULTIPLE FILTERS
+GET {{host}}/api/logs?action=LOGIN&startDate=2024-01-01&limit=5
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+### 3.10 GET LOGS WITHOUT AUTH (should fail - 401)
+GET {{host}}/api/logs
+Content-Type: {{contentType}}
+
+### 3.11 GET LOGS WITH INVALID TOKEN
+GET {{host}}/api/logs
+Authorization: Bearer invalid_token_123
+Content-Type: {{contentType}}
+
+##################################################
+### 4. API LOGS - STATISTICS
+##################################################
+
+### 4.1 GET LOG STATS - Regular User (should fail - 403)
+GET {{host}}/api/logs/stats
+Authorization: Bearer {{userToken}}
+Content-Type: {{contentType}}
+
+### 4.2 GET LOG STATS - Admin (should succeed)
+GET {{host}}/api/logs/stats
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+### 4.3 GET LOG STATS - Superadmin (should succeed)
+GET {{host}}/api/logs/stats
+Authorization: Bearer {{superadminToken}}
+Content-Type: {{contentType}}
+
+##################################################
+### 5. API LOGS - ACTIONS LIST
+##################################################
+
+### 5.1 GET ACTIONS LIST - Regular User (should fail - 403)
+GET {{host}}/api/logs/actions
+Authorization: Bearer {{userToken}}
+Content-Type: {{contentType}}
+
+### 5.2 GET ACTIONS LIST - Admin (should succeed)
+GET {{host}}/api/logs/actions
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+### 5.3 GET ACTIONS LIST - Superadmin (should succeed)
+GET {{host}}/api/logs/actions
+Authorization: Bearer {{superadminToken}}
+Content-Type: {{contentType}}
+
+##################################################
+### 6. API LOGS - GET LOG BY ID
+##################################################
+
+### 6.1 First, get a log ID from the list
+# @name getLogs
+GET {{host}}/api/logs?limit=1
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+> {%
+    // Extract the first log ID
+    const response = response.body;
+    if (response.success && response.data.length > 0) {
+        client.global.set("logId", response.data[0].id);
+    }
+%}
+
+### 6.2 GET LOG BY ID - Regular User (should fail - 403)
+GET {{host}}/api/logs/{{logId}}
+Authorization: Bearer {{userToken}}
+Content-Type: {{contentType}}
+
+### 6.3 GET LOG BY ID - Admin (should succeed)
+GET {{host}}/api/logs/{{logId}}
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+### 6.4 GET LOG BY ID - Superadmin (should succeed)
+GET {{host}}/api/logs/{{logId}}
+Authorization: Bearer {{superadminToken}}
+Content-Type: {{contentType}}
+
+### 6.5 GET LOG WITH INVALID ID (should fail - 404)
+GET {{host}}/api/logs/invalid-id-123
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+### 6.6 GET LOG WITH NON-EXISTENT ID
+GET {{host}}/api/logs/00000000-0000-0000-0000-000000000000
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+##################################################
+### 7. API LOGS - DELETE LOG
+##################################################
+
+### 7.1 DELETE LOG - Regular User (should fail - 403)
+DELETE {{host}}/api/logs/{{logId}}
+Authorization: Bearer {{userToken}}
+Content-Type: {{contentType}}
+
+### 7.2 DELETE LOG - Admin (should fail - 403, requires SUPERADMIN)
+DELETE {{host}}/api/logs/{{logId}}
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+### 7.3 DELETE LOG - Superadmin (should succeed)
+# First, create a new log to delete (optional - or use existing logId)
+# We'll use the logId from earlier
+
+DELETE {{host}}/api/logs/{{logId}}
+Authorization: Bearer {{superadminToken}}
+Content-Type: {{contentType}}
+
+### 7.4 DELETE LOG WITH INVALID ID
+DELETE {{host}}/api/logs/invalid-id
+Authorization: Bearer {{superadminToken}}
+Content-Type: {{contentType}}
+
+### 7.5 DELETE ALREADY DELETED LOG (should fail - 404)
+DELETE {{host}}/api/logs/{{logId}}
+Authorization: Bearer {{superadminToken}}
+Content-Type: {{contentType}}
+
+##################################################
+### 8. API LOGS - CLEAR OLD LOGS
+##################################################
+
+### 8.1 CLEAR LOGS - Regular User (should fail - 403)
+POST {{host}}/api/logs/clear
+Authorization: Bearer {{userToken}}
+Content-Type: {{contentType}}
+
+{
+  "days": 30
+}
+
+### 8.2 CLEAR LOGS - Admin (should fail - 403, requires SUPERADMIN)
+POST {{host}}/api/logs/clear
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+{
+  "days": 30
+}
+
+### 8.3 CLEAR LOGS - Superadmin (should succeed)
+POST {{host}}/api/logs/clear
+Authorization: Bearer {{superadminToken}}
+Content-Type: {{contentType}}
+
+{
+  "days": 30
+}
+
+### 8.4 CLEAR LOGS WITH TOO LOW DAYS (should fail - 400)
+POST {{host}}/api/logs/clear
+Authorization: Bearer {{superadminToken}}
+Content-Type: {{contentType}}
+
+{
+  "days": 0
+}
+
+### 8.5 CLEAR LOGS WITH TOO HIGH DAYS (should fail - 400)
+POST {{host}}/api/logs/clear
+Authorization: Bearer {{superadminToken}}
+Content-Type: {{contentType}}
+
+{
+  "days": 400
+}
+
+### 8.6 CLEAR LOGS WITHOUT DAYS PARAMETER
+POST {{host}}/api/logs/clear
+Authorization: Bearer {{superadminToken}}
+Content-Type: {{contentType}}
+
+{}
+
+### 8.7 CLEAR LOGS WITH CUSTOM DAYS
+POST {{host}}/api/logs/clear
+Authorization: Bearer {{superadminToken}}
+Content-Type: {{contentType}}
+
+{
+  "days": 7
+}
+
+##################################################
+### 9. EDGE CASES AND ERROR SCENARIOS
+##################################################
+
+### 9.1 GET LOGS WITH NEGATIVE PAGE NUMBER
+GET {{host}}/api/logs?page=-1
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+### 9.2 GET LOGS WITH VERY HIGH LIMIT
+GET {{host}}/api/logs?limit=1000
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+### 9.3 GET LOGS WITH INVALID DATE FORMAT
+GET {{host}}/api/logs?startDate=invalid-date
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+### 9.4 GET LOGS WITH SQL INJECTION ATTEMPT
+GET {{host}}/api/logs?search=' OR '1'='1
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+### 9.5 GET LOGS WITH XSS ATTEMPT
+GET {{host}}/api/logs?search=<script>alert('xss')</script>
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+### 9.6 GET LOGS WITH SPECIAL CHARACTERS
+GET {{host}}/api/logs?search=user@example.com
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+### 9.7 DELETE LOG WITH SQL INJECTION
+DELETE {{host}}/api/logs/1 OR 1=1
+Authorization: Bearer {{superadminToken}}
+Content-Type: {{contentType}}
+
+### 9.8 CLEAR LOGS WITH NEGATIVE DAYS
+POST {{host}}/api/logs/clear
+Authorization: Bearer {{superadminToken}}
+Content-Type: {{contentType}}
+
+{
+  "days": -10
+}
+
+##################################################
+### 10. PERFORMANCE AND LOAD TESTING (Optional)
+##################################################
+
+### 10.1 GET LOGS WITH ALL FILTERS (stress test)
+GET {{host}}/api/logs?page=1&limit=100&search=test&action=LOGIN&startDate=2024-01-01&endDate=2024-12-31
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+### 10.2 GET STATS MULTIPLE TIMES (concurrent test)
+# Run this multiple times to test caching/performance
+GET {{host}}/api/logs/stats
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+##################################################
+### 11. API COMPOSITION TESTS
+##################################################
+
+### 11.1 Create activity then view logs
+# First, perform an action that creates a log
+# Example: Login (already creates a log)
+POST {{host}}/api/auth/login
+Content-Type: {{contentType}}
+
+{
+  "email": "regular@example.com",
+  "password": "userpass123"
+}
+
+### Then check if the log appears
+GET {{host}}/api/logs?action=LOGIN&limit=5
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+### 11.2 Create user (as superadmin) then check logs
+POST {{host}}/api/users
+Authorization: Bearer {{superadminToken}}
+Content-Type: {{contentType}}
+
+{
+  "username": "testloguser",
+  "email": "testloguser@example.com",
+  "password": "testpass123",
+  "role": "USER"
+}
+
+### Check for USER_CREATED logs
+GET {{host}}/api/logs?action=USER_CREATED
+Authorization: Bearer {{superadminToken}}
+Content-Type: {{contentType}}
+
+##################################################
+### 12. CLEANUP (Optional)
+##################################################
+
+### Delete test user created above
+# First, get the user ID
+GET {{host}}/api/users?search=testloguser
+Authorization: Bearer {{superadminToken}}
+Content-Type: {{contentType}}
+
+> {%
+    const response = response.body;
+    if (response.success && response.data.length > 0) {
+        const testUserId = response.data[0].id;
+        client.global.set("testLogUserId", testUserId);
+    }
+%}
+
+### Then delete the user
+DELETE {{host}}/api/users/{{testLogUserId}}
+Authorization: Bearer {{superadminToken}}
+Content-Type: {{contentType}}

@@ -1,0 +1,6 @@
+# Uploads
+backend/public/uploads/
+*.tmp
+*.env
+.env
+.env.*

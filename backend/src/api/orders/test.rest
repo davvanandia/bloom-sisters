@@ -1,0 +1,567 @@
+@host = http://localhost:5000
+@contentType = application/json
+
+##################################################
+### 1. LOGIN UNTUK MENDAPATKAN TOKEN
+##################################################
+
+### Login Superadmin
+# @name superadminLogin
+POST {{host}}/api/auth/login
+Content-Type: {{contentType}}
+
+{
+  "email": "superadmin@example.com",
+  "password": "superpass123"
+}
+
+### Login Admin
+# @name adminLogin
+POST {{host}}/api/auth/login
+Content-Type: {{contentType}}
+
+{
+  "email": "admin@example.com",
+  "password": "adminpass123"
+}
+
+### Login Regular User
+# @name userLogin
+POST {{host}}/api/auth/login
+Content-Type: {{contentType}}
+
+{
+  "email": "regular@example.com",
+  "password": "userpass123"
+}
+
+##################################################
+### 2. SIMPAN TOKEN KE VARIABEL
+##################################################
+@superadminToken = {{superadminLogin.response.body.token}}
+@adminToken = {{adminLogin.response.body.token}}
+@userToken = {{userLogin.response.body.token}}
+
+@superadminId = {{superadminLogin.response.body.user.id}}
+@adminId = {{adminLogin.response.body.user.id}}
+@userId = {{userLogin.response.body.user.id}}
+
+##################################################
+### 3. API ORDERS - GET ALL ORDERS
+##################################################
+
+### 3.1 GET ALL ORDERS - Regular User (should fail - 403)
+GET {{host}}/api/orders
+Authorization: Bearer {{userToken}}
+Content-Type: {{contentType}}
+
+### 3.2 GET ALL ORDERS - Admin (should succeed)
+GET {{host}}/api/orders
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+### 3.3 GET ALL ORDERS - Superadmin (should succeed)
+GET {{host}}/api/orders
+Authorization: Bearer {{superadminToken}}
+Content-Type: {{contentType}}
+
+### 3.4 GET ORDERS WITH PAGINATION
+GET {{host}}/api/orders?page=1&limit=5
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+### 3.5 GET ORDERS WITH STATUS FILTER
+GET {{host}}/api/orders?status=PENDING
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+### 3.6 GET ORDERS WITH DATE RANGE
+GET {{host}}/api/orders?startDate=2024-01-01&endDate=2024-12-31
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+### 3.7 GET ORDERS WITH SEARCH
+GET {{host}}/api/orders?search=user
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+### 3.8 GET ORDERS WITH USER ID FILTER
+GET {{host}}/api/orders?userId={{userId}}
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+### 3.9 GET ORDERS WITH MULTIPLE FILTERS
+GET {{host}}/api/orders?status=PENDING&startDate=2024-01-01&limit=10
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+### 3.10 GET ORDERS WITH INVALID STATUS
+GET {{host}}/api/orders?status=INVALID_STATUS
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+### 3.11 GET ORDERS WITHOUT AUTH (should fail - 401)
+GET {{host}}/api/orders
+Content-Type: {{contentType}}
+
+### 3.12 GET ORDERS WITH INVALID TOKEN
+GET {{host}}/api/orders
+Authorization: Bearer invalid_token_123
+Content-Type: {{contentType}}
+
+##################################################
+### 4. API ORDERS - GET ORDER BY ID
+##################################################
+
+### 4.1 First, get an order ID from the list
+# @name getOrders
+GET {{host}}/api/orders?limit=1
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+> {%
+    // Extract the first order ID
+    const response = response.body;
+    if (response.success && response.data.length > 0) {
+        client.global.set("orderId", response.data[0].id);
+        client.global.set("orderUserId", response.data[0].userId);
+    }
+%}
+
+### 4.2 GET ORDER BY ID - Regular User viewing own order (should succeed)
+### Note: First need to check if the order belongs to this user
+GET {{host}}/api/orders/{{orderId}}
+Authorization: Bearer {{userToken}}
+Content-Type: {{contentType}}
+
+### 4.3 GET ORDER BY ID - Regular User viewing other's order (should fail - 403)
+### We need an order ID that doesn't belong to the regular user
+# First, find an order that doesn't belong to the regular user
+GET {{host}}/api/orders?limit=10
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+> {%
+    // Find an order that doesn't belong to the regular user
+    const response = response.body;
+    if (response.success && response.data.length > 0) {
+        const otherOrder = response.data.find(order => order.userId !== client.global.get("userId"));
+        if (otherOrder) {
+            client.global.set("otherOrderId", otherOrder.id);
+        }
+    }
+%}
+
+### Now try to access it as regular user
+GET {{host}}/api/orders/{{otherOrderId}}
+Authorization: Bearer {{userToken}}
+Content-Type: {{contentType}}
+
+### 4.4 GET ORDER BY ID - Admin viewing any order (should succeed)
+GET {{host}}/api/orders/{{orderId}}
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+### 4.5 GET ORDER BY ID - Superadmin viewing any order (should succeed)
+GET {{host}}/api/orders/{{orderId}}
+Authorization: Bearer {{superadminToken}}
+Content-Type: {{contentType}}
+
+### 4.6 GET ORDER WITH INVALID ID (should fail - 404)
+GET {{host}}/api/orders/invalid-id-123
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+### 4.7 GET ORDER WITH NON-EXISTENT ID
+GET {{host}}/api/orders/00000000-0000-0000-0000-000000000000
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+##################################################
+### 5. API ORDERS - UPDATE ORDER STATUS
+##################################################
+
+### 5.1 UPDATE ORDER - Regular User (should fail - 403)
+PUT {{host}}/api/orders/{{orderId}}
+Authorization: Bearer {{userToken}}
+Content-Type: {{contentType}}
+
+{
+  "status": "PROCESSING"
+}
+
+### 5.2 UPDATE ORDER - Admin (should succeed)
+PUT {{host}}/api/orders/{{orderId}}
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+{
+  "status": "PROCESSING"
+}
+
+### 5.3 UPDATE ORDER - Superadmin (should succeed)
+PUT {{host}}/api/orders/{{orderId}}
+Authorization: Bearer {{superadminToken}}
+Content-Type: {{contentType}}
+
+{
+  "status": "COMPLETED",
+  "total": 199.99
+}
+
+### 5.4 UPDATE ORDER WITH INVALID STATUS (should fail - 400)
+PUT {{host}}/api/orders/{{orderId}}
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+{
+  "status": "INVALID_STATUS"
+}
+
+### 5.5 UPDATE ORDER WITH VALID STATUSES
+PUT {{host}}/api/orders/{{orderId}}
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+{
+  "status": "PENDING"
+}
+
+PUT {{host}}/api/orders/{{orderId}}
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+{
+  "status": "PROCESSING"
+}
+
+PUT {{host}}/api/orders/{{orderId}}
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+{
+  "status": "COMPLETED"
+}
+
+PUT {{host}}/api/orders/{{orderId}}
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+{
+  "status": "CANCELLED"
+}
+
+### 5.6 UPDATE ORDER TOTAL AMOUNT
+PUT {{host}}/api/orders/{{orderId}}
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+{
+  "total": 299.99
+}
+
+### 5.7 UPDATE ORDER WITH BOTH STATUS AND TOTAL
+PUT {{host}}/api/orders/{{orderId}}
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+{
+  "status": "COMPLETED",
+  "total": 399.99
+}
+
+### 5.8 UPDATE NON-EXISTENT ORDER (should fail - 404)
+PUT {{host}}/api/orders/00000000-0000-0000-0000-000000000000
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+{
+  "status": "PROCESSING"
+}
+
+### 5.9 UPDATE ORDER WITH EMPTY BODY (should update nothing but succeed)
+PUT {{host}}/api/orders/{{orderId}}
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+{}
+
+##################################################
+### 6. API ORDERS - DELETE ORDER
+##################################################
+
+### 6.1 DELETE ORDER - Regular User (should fail - 403)
+DELETE {{host}}/api/orders/{{orderId}}
+Authorization: Bearer {{userToken}}
+Content-Type: {{contentType}}
+
+### 6.2 DELETE ORDER - Admin (should succeed)
+DELETE {{host}}/api/orders/{{orderId}}
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+### 6.3 DELETE ORDER - Superadmin (should succeed)
+### First get another order to delete
+# @name getAnotherOrder
+GET {{host}}/api/orders?limit=1
+Authorization: Bearer {{superadminToken}}
+Content-Type: {{contentType}}
+
+> {%
+    // Extract another order ID
+    const response = response.body;
+    if (response.success && response.data.length > 0) {
+        client.global.set("anotherOrderId", response.data[0].id);
+    }
+%}
+
+DELETE {{host}}/api/orders/{{anotherOrderId}}
+Authorization: Bearer {{superadminToken}}
+Content-Type: {{contentType}}
+
+### 6.4 DELETE ORDER WITH INVALID ID
+DELETE {{host}}/api/orders/invalid-id
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+### 6.5 DELETE ALREADY DELETED ORDER (should fail - 404)
+DELETE {{host}}/api/orders/{{orderId}}
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+##################################################
+### 7. API ORDERS - STATUS COUNTS
+##################################################
+
+### 7.1 GET STATUS COUNTS - Regular User (should fail - 403)
+GET {{host}}/api/orders/status/counts
+Authorization: Bearer {{userToken}}
+Content-Type: {{contentType}}
+
+### 7.2 GET STATUS COUNTS - Admin (should succeed)
+GET {{host}}/api/orders/status/counts
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+### 7.3 GET STATUS COUNTS - Superadmin (should succeed)
+GET {{host}}/api/orders/status/counts
+Authorization: Bearer {{superadminToken}}
+Content-Type: {{contentType}}
+
+### 7.4 GET STATUS COUNTS WITHOUT AUTH (should fail - 401)
+GET {{host}}/api/orders/status/counts
+Content-Type: {{contentType}}
+
+##################################################
+### 8. EDGE CASES AND ERROR SCENARIOS
+##################################################
+
+### 8.1 GET ORDERS WITH NEGATIVE PAGE NUMBER
+GET {{host}}/api/orders?page=-1
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+### 8.2 GET ORDERS WITH VERY HIGH LIMIT
+GET {{host}}/api/orders?limit=1000
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+### 8.3 GET ORDERS WITH INVALID DATE FORMAT
+GET {{host}}/api/orders?startDate=invalid-date
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+### 8.4 GET ORDERS WITH SQL INJECTION ATTEMPT
+GET {{host}}/api/orders?search=' OR '1'='1
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+### 8.5 GET ORDERS WITH XSS ATTEMPT
+GET {{host}}/api/orders?search=<script>alert('xss')</script>
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+### 8.6 UPDATE ORDER WITH SQL INJECTION
+PUT {{host}}/api/orders/1 OR 1=1
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+{
+  "status": "COMPLETED"
+}
+
+### 8.7 DELETE ORDER WITH SQL INJECTION
+DELETE {{host}}/api/orders/1 OR 1=1
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+### 8.8 GET ORDER BY ID WITH SQL INJECTION
+GET {{host}}/api/orders/1 OR 1=1
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+### 8.9 UPDATE ORDER WITH VERY LARGE TOTAL
+PUT {{host}}/api/orders/{{orderId}}
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+{
+  "total": 9999999999.99
+}
+
+### 8.10 UPDATE ORDER WITH NEGATIVE TOTAL (if allowed)
+PUT {{host}}/api/orders/{{orderId}}
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+{
+  "total": -100
+}
+
+### 8.11 GET ORDERS WITH SPECIAL CHARACTERS IN SEARCH
+GET {{host}}/api/orders?search=user@example.com
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+##################################################
+### 9. PERFORMANCE AND LOAD TESTING (Optional)
+##################################################
+
+### 9.1 GET ORDERS WITH ALL FILTERS (stress test)
+GET {{host}}/api/orders?page=1&limit=100&search=test&status=PENDING&startDate=2024-01-01&endDate=2024-12-31
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+### 9.2 GET STATUS COUNTS MULTIPLE TIMES (concurrent test)
+GET {{host}}/api/orders/status/counts
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+### 9.3 GET ORDER DETAILS MULTIPLE TIMES
+GET {{host}}/api/orders/{{orderId}}
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+##################################################
+### 10. API COMPOSITION TESTS
+##################################################
+
+### 10.1 Complete flow: Create order (if create endpoint exists), update, view, delete
+### Note: Since there's no POST /api/orders endpoint in the provided code,
+### we'll simulate with existing orders
+
+### Get an order, update it, verify update, then delete it
+# @name getOrderForFlow
+GET {{host}}/api/orders?limit=1
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+> {%
+    const response = response.body;
+    if (response.success && response.data.length > 0) {
+        const order = response.data[0];
+        client.global.set("flowOrderId", order.id);
+        client.global.set("originalStatus", order.status);
+    }
+%}
+
+### View the order
+GET {{host}}/api/orders/{{flowOrderId}}
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+### Update the order status
+PUT {{host}}/api/orders/{{flowOrderId}}
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+{
+  "status": "PROCESSING"
+}
+
+### Verify the update
+GET {{host}}/api/orders/{{flowOrderId}}
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+### View status counts to see the change
+GET {{host}}/api/orders/status/counts
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+### Delete the order (completing the flow)
+DELETE {{host}}/api/orders/{{flowOrderId}}
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+### 10.2 Test that deleted order is really gone
+GET {{host}}/api/orders/{{flowOrderId}}
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+##################################################
+### 11. BUSINESS LOGIC TESTS
+##################################################
+
+### 11.1 Test that user can only see their own orders
+### Login as different users and compare order lists
+
+### First, create another test user if needed
+POST {{host}}/api/auth/register
+Content-Type: {{contentType}}
+
+{
+  "username": "testcustomer",
+  "email": "testcustomer@example.com",
+  "password": "testpass123"
+}
+
+### Login as the new user
+# @name customerLogin
+POST {{host}}/api/auth/login
+Content-Type: {{contentType}}
+
+{
+  "email": "testcustomer@example.com",
+  "password": "testpass123"
+}
+
+@customerToken = {{customerLogin.response.body.token}}
+@customerId = {{customerLogin.response.body.user.id}}
+
+### Try to get all orders as customer (should fail - 403)
+GET {{host}}/api/orders
+Authorization: Bearer {{customerToken}}
+Content-Type: {{contentType}}
+
+### Admin view customer's orders
+GET {{host}}/api/orders?userId={{customerId}}
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+### 11.2 Test order status transitions
+### Create a test order (if create endpoint exists) or use existing
+### Then try different status transitions
+
+##################################################
+### 12. CLEANUP (Optional)
+##################################################
+
+### Delete test customer user (if created)
+### First, login as superadmin to delete user
+GET {{host}}/api/users?search=testcustomer
+Authorization: Bearer {{superadminToken}}
+Content-Type: {{contentType}}
+
+> {%
+    const response = response.body;
+    if (response.success && response.data.length > 0) {
+        const testCustomerId = response.data[0].id;
+        client.global.set("testCustomerId", testCustomerId);
+    }
+%}
+
+### Delete the test customer
+DELETE {{host}}/api/users/{{testCustomerId}}
+Authorization: Bearer {{superadminToken}}
+Content-Type: {{contentType}}

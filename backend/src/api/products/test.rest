@@ -1,0 +1,902 @@
+@host = http://localhost:5000
+@contentType = application/json
+
+##################################################
+### 1. LOGIN UNTUK MENDAPATKAN TOKEN
+##################################################
+
+### Login Superadmin
+# @name superadminLogin
+POST {{host}}/api/auth/login
+Content-Type: {{contentType}}
+
+{
+  "email": "davinavinsky@gmail.com",
+  "password": "1sampai8"
+}
+
+### Login Admin
+# @name adminLogin
+POST {{host}}/api/auth/login
+Content-Type: {{contentType}}
+
+{
+  "email": "admin@example.com",
+  "password": "adminpass123"
+}
+
+### Login Regular User
+# @name userLogin
+POST {{host}}/api/auth/login
+Content-Type: {{contentType}}
+
+{
+  "email": "regular@example.com",
+  "password": "userpass123"
+}
+
+##################################################
+### 2. SIMPAN TOKEN KE VARIABEL
+##################################################
+@superadminToken = {{superadminLogin.response.body.token}}
+@adminToken = {{adminLogin.response.body.token}}
+@userToken = {{userLogin.response.body.token}}
+
+##################################################
+### 3. API PRODUCTS - GET ALL PRODUCTS (PUBLIC)
+##################################################
+
+### 3.1 GET ALL PRODUCTS - No authentication required
+GET {{host}}/api/products
+Content-Type: {{contentType}}
+
+### 3.2 GET PRODUCTS WITH PAGINATION
+GET {{host}}/api/products?page=1&limit=5
+Content-Type: {{contentType}}
+
+### 3.3 GET PRODUCTS WITH CATEGORY FILTER
+GET {{host}}/api/products?category=Electronics
+Content-Type: {{contentType}}
+
+### 3.4 GET FEATURED PRODUCTS
+GET {{host}}/api/products?featured=true
+Content-Type: {{contentType}}
+
+### 3.5 GET ACTIVE PRODUCTS ONLY
+GET {{host}}/api/products?active=true
+Content-Type: {{contentType}}
+
+### 3.6 GET PRODUCTS WITH PRICE RANGE
+GET {{host}}/api/products?minPrice=10&maxPrice=100
+Content-Type: {{contentType}}
+
+### 3.7 SEARCH PRODUCTS
+GET {{host}}/api/products?search=laptop
+Content-Type: {{contentType}}
+
+### 3.8 SORT PRODUCTS
+GET {{host}}/api/products?sortBy=price&sortOrder=asc
+Content-Type: {{contentType}}
+
+### 3.9 GET PRODUCTS WITH ALL FILTERS
+GET {{host}}/api/products?page=1&limit=10&category=Electronics&featured=true&minPrice=50&maxPrice=500&search=apple&sortBy=price&sortOrder=desc
+Content-Type: {{contentType}}
+
+### 3.10 GET PRODUCTS WITH INVALID PARAMETERS
+GET {{host}}/api/products?page=0&limit=0
+Content-Type: {{contentType}}
+
+##################################################
+### 4. API PRODUCTS - GET PRODUCT BY ID
+##################################################
+
+### 4.1 First, get a product ID from the list
+# @name getProducts
+GET {{host}}/api/products?limit=1
+Content-Type: {{contentType}}
+
+> {%
+    // Extract the first product ID
+    const response = response.body;
+    if (response.success && response.data.length > 0) {
+        client.global.set("productId", response.data[0].id);
+        client.global.set("productSlug", response.data[0].slug);
+    }
+%}
+
+### 4.2 GET PRODUCT BY ID - Public (no auth needed)
+GET {{host}}/api/products/{{productId}}
+Content-Type: {{contentType}}
+
+### 4.3 GET PRODUCT WITH INVALID ID (should fail - 404)
+GET {{host}}/api/products/invalid-id-123
+Content-Type: {{contentType}}
+
+### 4.4 GET PRODUCT WITH NON-EXISTENT ID
+GET {{host}}/api/products/00000000-0000-0000-0000-000000000000
+Content-Type: {{contentType}}
+
+##################################################
+### 5. API PRODUCTS - CREATE PRODUCT (ADMIN ONLY)
+##################################################
+
+### 5.1 CREATE PRODUCT - Regular User (should fail - 403)
+POST {{host}}/api/products
+Authorization: Bearer {{userToken}}
+Content-Type: multipart/form-data; boundary=WebAppBoundary
+
+--WebAppBoundary
+Content-Disposition: form-data; name="name"
+
+Test Product 1
+--WebAppBoundary
+Content-Disposition: form-data; name="description"
+
+This is a test product description
+--WebAppBoundary
+Content-Disposition: form-data; name="price"
+
+99.99
+--WebAppBoundary
+Content-Disposition: form-data; name="stock"
+
+50
+--WebAppBoundary
+Content-Disposition: form-data; name="category"
+
+Electronics
+--WebAppBoundary
+Content-Disposition: form-data; name="featured"
+
+false
+--WebAppBoundary
+Content-Disposition: form-data; name="active"
+
+true
+--WebAppBoundary
+Content-Disposition: form-data; name="tags"
+
+["electronics", "test", "gadget"]
+--WebAppBoundary
+Content-Disposition: form-data; name="weight"
+
+1.5
+--WebAppBoundary
+Content-Disposition: form-data; name="dimensions"
+
+10x5x2
+--WebAppBoundary
+Content-Disposition: form-data; name="images"; filename="test.jpg"
+Content-Type: image/jpeg
+
+< ./test.jpg
+--WebAppBoundary--
+
+### 5.2 CREATE PRODUCT - Admin (with image upload)
+# @name createProduct
+POST {{host}}/api/products
+Authorization: Bearer {{adminToken}}
+Content-Type: multipart/form-data; boundary=WebAppBoundary
+
+--WebAppBoundary
+Content-Disposition: form-data; name="name"
+
+Premium Wireless Headphones
+--WebAppBoundary
+Content-Disposition: form-data; name="description"
+
+High-quality wireless headphones with noise cancellation and 30-hour battery life. Perfect for music lovers and professionals.
+--WebAppBoundary
+Content-Disposition: form-data; name="price"
+
+199.99
+--WebAppBoundary
+Content-Disposition: form-data; name="stock"
+
+100
+--WebAppBoundary
+Content-Disposition: form-data; name="category"
+
+Electronics
+--WebAppBoundary
+Content-Disposition: form-data; name="featured"
+
+true
+--WebAppBoundary
+Content-Disposition: form-data; name="active"
+
+true
+--WebAppBoundary
+Content-Disposition: form-data; name="tags"
+
+["electronics", "headphones", "audio", "wireless"]
+--WebAppBoundary
+Content-Disposition: form-data; name="weight"
+
+0.3
+--WebAppBoundary
+Content-Disposition: form-data; name="dimensions"
+
+18x15x8
+--WebAppBoundary
+Content-Disposition: form-data; name="images"; filename="headphones.jpg"
+Content-Type: image/jpeg
+
+< ./headphones.jpg
+--WebAppBoundary
+Content-Disposition: form-data; name="images"; filename="headphones2.jpg"
+Content-Type: image/jpeg
+
+< ./headphones2.jpg
+--WebAppBoundary--
+
+### 5.3 CREATE PRODUCT - Superadmin (minimal data)
+# @name createSimpleProduct
+POST {{host}}/api/products
+Authorization: Bearer {{superadminToken}}
+Content-Type: multipart/form-data; boundary=WebAppBoundary
+
+--WebAppBoundary
+Content-Disposition: form-data; name="name"
+
+Simple Test Product
+--WebAppBoundary
+Content-Disposition: form-data; name="price"
+
+29.99
+--WebAppBoundary
+Content-Disposition: form-data; name="stock"
+
+25
+--WebAppBoundary
+Content-Disposition: form-data; name="category"
+
+Books
+--WebAppBoundary
+Content-Disposition: form-data; name="images"; filename="book.jpg"
+Content-Type: image/jpeg
+
+< ./book.jpg
+--WebAppBoundary--
+
+### 5.4 CREATE PRODUCT WITHOUT IMAGES (should fail validation)
+POST {{host}}/api/products
+Authorization: Bearer {{adminToken}}
+Content-Type: multipart/form-data; boundary=WebAppBoundary
+
+--WebAppBoundary
+Content-Disposition: form-data; name="name"
+
+Product Without Image
+--WebAppBoundary
+Content-Disposition: form-data; name="price"
+
+49.99
+--WebAppBoundary
+Content-Disposition: form-data; name="stock"
+
+10
+--WebAppBoundary
+Content-Disposition: form-data; name="category"
+
+Clothing
+--WebAppBoundary--
+
+### 5.5 CREATE PRODUCT WITH INVALID DATA
+POST {{host}}/api/products
+Authorization: Bearer {{adminToken}}
+Content-Type: multipart/form-data; boundary=WebAppBoundary
+
+--WebAppBoundary
+Content-Disposition: form-data; name="name"
+
+--WebAppBoundary
+Content-Disposition: form-data; name="price"
+
+-10
+--WebAppBoundary
+Content-Disposition: form-data; name="stock"
+
+-5
+--WebAppBoundary
+Content-Disposition: form-data; name="category"
+
+--WebAppBoundary
+Content-Disposition: form-data; name="images"; filename="test.jpg"
+Content-Type: image/jpeg
+
+< ./test.jpg
+--WebAppBoundary--
+
+### 5.6 CREATE PRODUCT WITH DUPLICATE NAME (should generate different slug)
+POST {{host}}/api/products
+Authorization: Bearer {{adminToken}}
+Content-Type: multipart/form-data; boundary=WebAppBoundary
+
+--WebAppBoundary
+Content-Disposition: form-data; name="name"
+
+Premium Wireless Headphones
+--WebAppBoundary
+Content-Disposition: form-data; name="price"
+
+179.99
+--WebAppBoundary
+Content-Disposition: form-data; name="stock"
+
+75
+--WebAppBoundary
+Content-Disposition: form-data; name="category"
+
+Electronics
+--WebAppBoundary
+Content-Disposition: form-data; name="images"; filename="test.jpg"
+Content-Type: image/jpeg
+
+< ./test.jpg
+--WebAppBoundary--
+
+### 5.7 CREATE PRODUCT WITH LARGE FILE (test file size limit)
+POST {{host}}/api/products
+Authorization: Bearer {{adminToken}}
+Content-Type: multipart/form-data; boundary=WebAppBoundary
+
+--WebAppBoundary
+Content-Disposition: form-data; name="name"
+
+Large Image Product
+--WebAppBoundary
+Content-Disposition: form-data; name="price"
+
+99.99
+--WebAppBoundary
+Content-Disposition: form-data; name="stock"
+
+20
+--WebAppBoundary
+Content-Disposition: form-data; name="category"
+
+Test
+--WebAppBoundary
+Content-Disposition: form-data; name="images"; filename="large-image.jpg"
+Content-Type: image/jpeg
+
+< ./large-image.jpg
+--WebAppBoundary--
+
+##################################################
+### 6. API PRODUCTS - UPDATE PRODUCT (ADMIN ONLY)
+##################################################
+
+### 6.1 Get the product ID created earlier
+> {%
+    // Extract product ID from createProduct response
+    if (createProduct && createProduct.response && createProduct.response.body.success) {
+        client.global.set("createdProductId", createProduct.response.body.data.id);
+        client.global.set("createdProductImages", JSON.stringify(createProduct.response.body.data.images));
+    }
+%}
+
+### 6.2 UPDATE PRODUCT - Regular User (should fail - 403)
+PUT {{host}}/api/products/{{createdProductId}}
+Authorization: Bearer {{userToken}}
+Content-Type: multipart/form-data; boundary=WebAppBoundary
+
+--WebAppBoundary
+Content-Disposition: form-data; name="name"
+
+Updated Product Name
+--WebAppBoundary
+Content-Disposition: form-data; name="price"
+
+149.99
+--WebAppBoundary--
+
+### 6.3 UPDATE PRODUCT - Admin (update price and stock)
+# @name updateProduct
+PUT {{host}}/api/products/{{createdProductId}}
+Authorization: Bearer {{adminToken}}
+Content-Type: multipart/form-data; boundary=WebAppBoundary
+
+--WebAppBoundary
+Content-Disposition: form-data; name="name"
+
+Premium Wireless Headphones Pro
+--WebAppBoundary
+Content-Disposition: form-data; name="description"
+
+Updated description: Premium wireless headphones with enhanced noise cancellation and 40-hour battery life.
+--WebAppBoundary
+Content-Disposition: form-data; name="price"
+
+229.99
+--WebAppBoundary
+Content-Disposition: form-data; name="stock"
+
+75
+--WebAppBoundary
+Content-Disposition: form-data; name="featured"
+
+true
+--WebAppBoundary
+Content-Disposition: form-data; name="tags"
+
+["electronics", "headphones", "premium", "wireless", "noise-cancelling"]
+--WebAppBoundary--
+
+### 6.4 UPDATE PRODUCT WITH NEW IMAGES
+PUT {{host}}/api/products/{{createdProductId}}
+Authorization: Bearer {{adminToken}}
+Content-Type: multipart/form-data; boundary=WebAppBoundary
+
+--WebAppBoundary
+Content-Disposition: form-data; name="name"
+
+Premium Wireless Headphones Pro v2
+--WebAppBoundary
+Content-Disposition: form-data; name="price"
+
+249.99
+--WebAppBoundary
+Content-Disposition: form-data; name="images"; filename="new-image.jpg"
+Content-Type: image/jpeg
+
+< ./new-image.jpg
+--WebAppBoundary--
+
+### 6.5 UPDATE PRODUCT AND DELETE SOME IMAGES
+### First, get current images
+GET {{host}}/api/products/{{createdProductId}}
+Content-Type: {{contentType}}
+
+> {%
+    const response = response.body;
+    if (response.success && response.data.images && response.data.images.length > 0) {
+        const imagesToDelete = [response.data.images[0]]; // Delete first image
+        client.global.set("deleteImages", JSON.stringify(imagesToDelete));
+    }
+%}
+
+### Now update with image deletion
+PUT {{host}}/api/products/{{createdProductId}}
+Authorization: Bearer {{adminToken}}
+Content-Type: multipart/form-data; boundary=WebAppBoundary
+
+--WebAppBoundary
+Content-Disposition: form-data; name="name"
+
+Product with Deleted Images
+--WebAppBoundary
+Content-Disposition: form-data; name="price"
+
+199.99
+--WebAppBoundary
+Content-Disposition: form-data; name="deleteImages"
+
+{{deleteImages}}
+--WebAppBoundary
+Content-Disposition: form-data; name="images"; filename="replacement.jpg"
+Content-Type: image/jpeg
+
+< ./replacement.jpg
+--WebAppBoundary--
+
+### 6.6 UPDATE PRODUCT SET TO INACTIVE
+PUT {{host}}/api/products/{{createdProductId}}
+Authorization: Bearer {{adminToken}}
+Content-Type: multipart/form-data; boundary=WebAppBoundary
+
+--WebAppBoundary
+Content-Disposition: form-data; name="active"
+
+false
+--WebAppBoundary--
+
+### 6.7 UPDATE PRODUCT WITH INVALID DATA
+PUT {{host}}/api/products/{{createdProductId}}
+Authorization: Bearer {{adminToken}}
+Content-Type: multipart/form-data; boundary=WebAppBoundary
+
+--WebAppBoundary
+Content-Disposition: form-data; name="price"
+
+-50
+--WebAppBoundary
+Content-Disposition: form-data; name="stock"
+
+-10
+--WebAppBoundary--
+
+### 6.8 UPDATE NON-EXISTENT PRODUCT (should fail - 404)
+PUT {{host}}/api/products/00000000-0000-0000-0000-000000000000
+Authorization: Bearer {{adminToken}}
+Content-Type: multipart/form-data; boundary=WebAppBoundary
+
+--WebAppBoundary
+Content-Disposition: form-data; name="name"
+
+Non-existent Product
+--WebAppBoundary--
+
+### 6.9 UPDATE PRODUCT WITHOUT CHANGES (empty body)
+PUT {{host}}/api/products/{{createdProductId}}
+Authorization: Bearer {{adminToken}}
+Content-Type: multipart/form-data; boundary=WebAppBoundary
+
+--WebAppBoundary
+Content-Disposition: form-data; name=""
+
+--WebAppBoundary--
+
+##################################################
+### 7. API PRODUCTS - DELETE PRODUCT (ADMIN ONLY)
+##################################################
+
+### 7.1 DELETE PRODUCT - Regular User (should fail - 403)
+DELETE {{host}}/api/products/{{createdProductId}}
+Authorization: Bearer {{userToken}}
+Content-Type: {{contentType}}
+
+### 7.2 DELETE PRODUCT - Admin (delete the simple product created earlier)
+> {%
+    // Get the simple product ID
+    if (createSimpleProduct && createSimpleProduct.response && createSimpleProduct.response.body.success) {
+        client.global.set("simpleProductId", createSimpleProduct.response.body.data.id);
+    }
+%}
+
+DELETE {{host}}/api/products/{{simpleProductId}}
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+### 7.3 DELETE PRODUCT - Superadmin (try to delete product with orders)
+### First, check if any product has orders
+GET {{host}}/api/products?limit=10
+Content-Type: {{contentType}}
+
+> {%
+    // Find a product that might have orders
+    const response = response.body;
+    if (response.success && response.data.length > 0) {
+        for (const product of response.data) {
+            if (product.orderItems && product.orderItems.length > 0) {
+                client.global.set("productWithOrdersId", product.id);
+                break;
+            }
+        }
+    }
+%}
+
+### Try to delete product with orders (should fail - 400)
+DELETE {{host}}/api/products/{{productWithOrdersId}}
+Authorization: Bearer {{superadminToken}}
+Content-Type: {{contentType}}
+
+### 7.4 DELETE PRODUCT WITH INVALID ID
+DELETE {{host}}/api/products/invalid-id
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+### 7.5 DELETE ALREADY DELETED PRODUCT (should fail - 404)
+DELETE {{host}}/api/products/{{simpleProductId}}
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+##################################################
+### 8. API PRODUCTS - GET CATEGORIES
+##################################################
+
+### 8.1 GET CATEGORIES - Public (no auth needed)
+GET {{host}}/api/products/api/categories
+Content-Type: {{contentType}}
+
+### 8.2 GET CATEGORIES WITH ACTIVE FILTER (implicit in endpoint)
+GET {{host}}/api/products/api/categories
+Content-Type: {{contentType}}
+
+##################################################
+### 9. EDGE CASES AND ERROR SCENARIOS
+##################################################
+
+### 9.1 GET PRODUCTS WITH SQL INJECTION ATTEMPT
+GET {{host}}/api/products?search=' OR '1'='1
+Content-Type: {{contentType}}
+
+### 9.2 GET PRODUCTS WITH XSS ATTEMPT
+GET {{host}}/api/products?search=<script>alert('xss')</script>
+Content-Type: {{contentType}}
+
+### 9.3 CREATE PRODUCT WITH MALICIOUS FILENAME
+POST {{host}}/api/products
+Authorization: Bearer {{adminToken}}
+Content-Type: multipart/form-data; boundary=WebAppBoundary
+
+--WebAppBoundary
+Content-Disposition: form-data; name="name"
+
+Malicious File Product
+--WebAppBoundary
+Content-Disposition: form-data; name="price"
+
+99.99
+--WebAppBoundary
+Content-Disposition: form-data; name="stock"
+
+10
+--WebAppBoundary
+Content-Disposition: form-data; name="category"
+
+Test
+--WebAppBoundary
+Content-Disposition: form-data; name="images"; filename="../../../etc/passwd"
+Content-Type: text/plain
+
+malicious content
+--WebAppBoundary--
+
+### 9.4 CREATE PRODUCT WITH HUGE DESCRIPTION
+POST {{host}}/api/products
+Authorization: Bearer {{adminToken}}
+Content-Type: multipart/form-data; boundary=WebAppBoundary
+
+--WebAppBoundary
+Content-Disposition: form-data; name="name"
+
+Product with Huge Description
+--WebAppBoundary
+Content-Disposition: form-data; name="description"
+
+{{"A".repeat(10000)}}
+--WebAppBoundary
+Content-Disposition: form-data; name="price"
+
+99.99
+--WebAppBoundary
+Content-Disposition: form-data; name="stock"
+
+10
+--WebAppBoundary
+Content-Disposition: form-data; name="category"
+
+Test
+--WebAppBoundary
+Content-Disposition: form-data; name="images"; filename="test.jpg"
+Content-Type: image/jpeg
+
+< ./test.jpg
+--WebAppBoundary--
+
+### 9.5 UPDATE PRODUCT WITH SAME NAME (should work, slug might be the same)
+PUT {{host}}/api/products/{{createdProductId}}
+Authorization: Bearer {{adminToken}}
+Content-Type: multipart/form-data; boundary=WebAppBoundary
+
+--WebAppBoundary
+Content-Disposition: form-data; name="name"
+
+Premium Wireless Headphones Pro
+--WebAppBoundary--
+
+##################################################
+### 10. PERFORMANCE AND LOAD TESTING
+##################################################
+
+### 10.1 GET PRODUCTS WITH MANY FILTERS (stress test)
+GET {{host}}/api/products?page=1&limit=100&category=Electronics&featured=true&minPrice=1&maxPrice=1000&search=a&sortBy=price&sortOrder=asc
+Content-Type: {{contentType}}
+
+### 10.2 GET PRODUCT DETAILS MULTIPLE TIMES
+GET {{host}}/api/products/{{productId}}
+Content-Type: {{contentType}}
+
+GET {{host}}/api/products/{{productId}}
+Content-Type: {{contentType}}
+
+GET {{host}}/api/products/{{productId}}
+Content-Type: {{contentType}}
+
+### 10.3 GET CATEGORIES MULTIPLE TIMES
+GET {{host}}/api/products/api/categories
+Content-Type: {{contentType}}
+
+##################################################
+### 11. API COMPOSITION TESTS
+##################################################
+
+### 11.1 Create, Read, Update, Delete (CRUD) flow
+### Create a new product
+# @name crudProduct
+POST {{host}}/api/products
+Authorization: Bearer {{adminToken}}
+Content-Type: multipart/form-data; boundary=WebAppBoundary
+
+--WebAppBoundary
+Content-Disposition: form-data; name="name"
+
+CRUD Test Product
+--WebAppBoundary
+Content-Disposition: form-data; name="description"
+
+This product is for testing CRUD operations
+--WebAppBoundary
+Content-Disposition: form-data; name="price"
+
+79.99
+--WebAppBoundary
+Content-Disposition: form-data; name="stock"
+
+40
+--WebAppBoundary
+Content-Disposition: form-data; name="category"
+
+Test
+--WebAppBoundary
+Content-Disposition: form-data; name="images"; filename="test.jpg"
+Content-Type: image/jpeg
+
+< ./test.jpg
+--WebAppBoundary--
+
+### Read the product
+> {%
+    if (crudProduct && crudProduct.response && crudProduct.response.body.success) {
+        client.global.set("crudProductId", crudProduct.response.body.data.id);
+    }
+%}
+
+GET {{host}}/api/products/{{crudProductId}}
+Content-Type: {{contentType}}
+
+### Update the product
+PUT {{host}}/api/products/{{crudProductId}}
+Authorization: Bearer {{adminToken}}
+Content-Type: multipart/form-data; boundary=WebAppBoundary
+
+--WebAppBoundary
+Content-Disposition: form-data; name="price"
+
+89.99
+--WebAppBoundary
+Content-Disposition: form-data; name="stock"
+
+30
+--WebAppBoundary
+Content-Disposition: form-data; name="featured"
+
+true
+--WebAppBoundary--
+
+### Verify update
+GET {{host}}/api/products/{{crudProductId}}
+Content-Type: {{contentType}}
+
+### Delete the product
+DELETE {{host}}/api/products/{{crudProductId}}
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+### Verify deletion
+GET {{host}}/api/products/{{crudProductId}}
+Content-Type: {{contentType}}
+
+##################################################
+### 12. BUSINESS LOGIC TESTS
+##################################################
+
+### 12.1 Test that inactive products don't appear in categories
+### First, create an inactive product in a unique category
+POST {{host}}/api/products
+Authorization: Bearer {{adminToken}}
+Content-Type: multipart/form-data; boundary=WebAppBoundary
+
+--WebAppBoundary
+Content-Disposition: form-data; name="name"
+
+Inactive Test Product
+--WebAppBoundary
+Content-Disposition: form-data; name="price"
+
+49.99
+--WebAppBoundary
+Content-Disposition: form-data; name="stock"
+
+5
+--WebAppBoundary
+Content-Disposition: form-data; name="category"
+
+UniqueCategory123
+--WebAppBoundary
+Content-Disposition: form-data; name="active"
+
+false
+--WebAppBoundary
+Content-Disposition: form-data; name="images"; filename="test.jpg"
+Content-Type: image/jpeg
+
+< ./test.jpg
+--WebAppBoundary--
+
+### Check categories - UniqueCategory123 should NOT appear
+GET {{host}}/api/products/api/categories
+Content-Type: {{contentType}}
+
+### 12.2 Test that featured products can be filtered
+### Create a featured product
+POST {{host}}/api/products
+Authorization: Bearer {{adminToken}}
+Content-Type: multipart/form-data; boundary=WebAppBoundary
+
+--WebAppBoundary
+Content-Disposition: form-data; name="name"
+
+Featured Test Product
+--WebAppBoundary
+Content-Disposition: form-data; name="price"
+
+199.99
+--WebAppBoundary
+Content-Disposition: form-data; name="stock"
+
+15
+--WebAppBoundary
+Content-Disposition: form-data; name="category"
+
+FeaturedCategory
+--WebAppBoundary
+Content-Disposition: form-data; name="featured"
+
+true
+--WebAppBoundary
+Content-Disposition: form-data; name="images"; filename="test.jpg"
+Content-Type: image/jpeg
+
+< ./test.jpg
+--WebAppBoundary--
+
+### Get featured products
+GET {{host}}/api/products?featured=true&category=FeaturedCategory
+Content-Type: {{contentType}}
+
+### 12.3 Test product slug generation
+### Create product with special characters in name
+POST {{host}}/api/products
+Authorization: Bearer {{adminToken}}
+Content-Type: multipart/form-data; boundary=WebAppBoundary
+
+--WebAppBoundary
+Content-Disposition: form-data; name="name"
+
+Product Name with Spaces & Special @Characters!
+--WebAppBoundary
+Content-Disposition: form-data; name="price"
+
+59.99
+--WebAppBoundary
+Content-Disposition: form-data; name="stock"
+
+20
+--WebAppBoundary
+Content-Disposition: form-data; name="category"
+
+Test
+--WebAppBoundary
+Content-Disposition: form-data; name="images"; filename="test.jpg"
+Content-Type: image/jpeg
+
+< ./test.jpg
+--WebAppBoundary--
+
+> {%
+    // Check the slug in response
+    const response = response.body;
+    if (response.success) {
+        console.log('Generated slug:', response.data.slug);
+    }
+%}
+
+##################################################
+### 13. CLEANUP (Optional)
+##################################################
+
+### Delete test products created during testing
+### Note: You might want to keep some for other tests

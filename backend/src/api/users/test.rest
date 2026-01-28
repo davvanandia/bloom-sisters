@@ -1,0 +1,394 @@
+@host = http://localhost:5000
+@contentType = application/json
+@adminToken = {{adminLogin.response.body.token}}
+@userToken = {{userLogin.response.body.token}}
+@superadminToken = {{superadminLogin.response.body.token}}
+
+##################################################
+### 1. REGISTER TEST USERS
+##################################################
+
+### Register Superadmin User (harusnya gagal karena register hanya buat USER role)
+POST {{host}}/api/auth/register
+Content-Type: {{contentType}}
+
+{
+  "username": "superadmin",
+  "email": "superadmin@example.com",
+  "password": "superadmin123"
+}
+
+### Register Admin User (harusnya gagal karena register hanya buat USER role)
+POST {{host}}/api/auth/register
+Content-Type: {{contentType}}
+
+{
+  "username": "adminuser",
+  "email": "admin@example.com",
+  "password": "adminpass123"
+}
+
+### Register Regular User
+# @name regularUserRegister
+POST {{host}}/api/auth/register
+Content-Type: {{contentType}}
+
+{
+  "username": "regularuser",
+  "email": "regular@example.com",
+  "password": "userpass123"
+}
+
+### Register Another User
+POST {{host}}/api/auth/register
+Content-Type: {{contentType}}
+
+{
+  "username": "anotheruser",
+  "email": "another@example.com",
+  "password": "userpass123"
+}
+
+##################################################
+### 2. LOGIN USERS
+##################################################
+
+### Login Superadmin
+# @name superadminLogin
+POST {{host}}/api/auth/login
+Content-Type: {{contentType}}
+
+{
+  "email": "anandiadavv@gmail.com",
+  "password": "1sampai9"
+}
+
+### Login Admin
+# @name adminLogin
+POST {{host}}/api/auth/login
+Content-Type: {{contentType}}
+
+{
+  "email": "admin@example.com",
+  "password": "adminpass123"
+}
+
+### Login Regular User
+# @name userLogin
+POST {{host}}/api/auth/login
+Content-Type: {{contentType}}
+
+{
+  "email": "regular@example.com",
+  "password": "userpass123"
+}
+
+##################################################
+### 3. USER MANAGEMENT ENDPOINTS
+##################################################
+
+### 3.1 GET ALL USERS (Admin/Superadmin only)
+### Try as Regular User (should fail)
+GET {{host}}/api/users
+Authorization: Bearer {{userToken}}
+Content-Type: {{contentType}}
+
+### Try as Admin (should succeed if user has ADMIN role)
+GET {{host}}/api/users
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+### Try as Superadmin (should succeed)
+GET {{host}}/api/users
+Authorization: Bearer {{superadminToken}}
+Content-Type: {{contentType}}
+
+### Without token (should fail)
+GET {{host}}/api/users
+Content-Type: {{contentType}}
+
+### 3.2 GET USER BY ID
+### Get own profile (should work for everyone)
+GET {{host}}/api/users/{{userLogin.response.body.user.id}}
+Authorization: Bearer {{userToken}}
+Content-Type: {{contentType}}
+
+### Get other user's profile as regular user (should fail)
+GET {{host}}/api/users/{{adminLogin.response.body.user.id}}
+Authorization: Bearer {{userToken}}
+Content-Type: {{contentType}}
+
+### Get any user profile as admin (should succeed)
+GET {{host}}/api/users/{{userLogin.response.body.user.id}}
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+### Get user with invalid ID
+GET {{host}}/api/users/invalid-id
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+### 3.3 CREATE USER (Superadmin only)
+### Try as Regular User (should fail)
+POST {{host}}/api/users
+Authorization: Bearer {{userToken}}
+Content-Type: {{contentType}}
+
+{
+  "username": "newuser1",
+  "email": "newuser1@example.com",
+  "password": "password123",
+  "role": "USER"
+}
+
+### Try as Admin (should fail if roleMiddleware requires SUPERADMIN)
+POST {{host}}/api/users
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+{
+  "username": "newuser2",
+  "email": "newuser2@example.com",
+  "password": "password123",
+  "role": "USER"
+}
+
+### Try as Superadmin (should succeed)
+# @name createUser
+POST {{host}}/api/users
+Authorization: Bearer {{superadminToken}}
+Content-Type: {{contentType}}
+
+{
+  "username": "createduser",
+  "email": "createduser@example.com",
+  "password": "createdpass123",
+  "role": "USER"
+}
+
+### Create user with ADMIN role (Superadmin only)
+POST {{host}}/api/users
+Authorization: Bearer {{superadminToken}}
+Content-Type: {{contentType}}
+
+{
+  "username": "newadmin",
+  "email": "newadmin@example.com",
+  "password": "adminpass123",
+  "role": "ADMIN"
+}
+
+### Create user with SUPERADMIN role (Superadmin only)
+POST {{host}}/api/users
+Authorization: Bearer {{superadminToken}}
+Content-Type: {{contentType}}
+
+{
+  "username": "newsuperadmin",
+  "email": "newsuperadmin@example.com",
+  "password": "superpass123",
+  "role": "SUPERADMIN"
+}
+
+### Create user with missing required fields
+POST {{host}}/api/users
+Authorization: Bearer {{superadminToken}}
+Content-Type: {{contentType}}
+
+{
+  "username": "incomplete"
+}
+
+### Create user with existing email/username
+POST {{host}}/api/users
+Authorization: Bearer {{superadminToken}}
+Content-Type: {{contentType}}
+
+{
+  "username": "regularuser",
+  "email": "regular@example.com",
+  "password": "password123",
+  "role": "USER"
+}
+
+### 3.4 UPDATE USER
+### Update own profile as regular user (should succeed)
+PUT {{host}}/api/users/{{userLogin.response.body.user.id}}
+Authorization: Bearer {{userToken}}
+Content-Type: {{contentType}}
+
+{
+  "username": "updateduser",
+  "email": "updated@example.com"
+}
+
+### Try to update other user's profile as regular user (should fail)
+PUT {{host}}/api/users/{{adminLogin.response.body.user.id}}
+Authorization: Bearer {{userToken}}
+Content-Type: {{contentType}}
+
+{
+  "username": "hackeduser"
+}
+
+### Update any user as admin (should succeed)
+PUT {{host}}/api/users/{{userLogin.response.body.user.id}}
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+{
+  "username": "adminupdated",
+  "email": "adminupdated@example.com"
+}
+
+### Admin trying to change role (should fail, only superadmin can)
+PUT {{host}}/api/users/{{userLogin.response.body.user.id}}
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+{
+  "role": "ADMIN"
+}
+
+### Superadmin changing user role (should succeed)
+PUT {{host}}/api/users/{{userLogin.response.body.user.id}}
+Authorization: Bearer {{superadminToken}}
+Content-Type: {{contentType}}
+
+{
+  "role": "ADMIN"
+}
+
+### Update user with invalid ID
+PUT {{host}}/api/users/invalid-id
+Authorization: Bearer {{superadminToken}}
+Content-Type: {{contentType}}
+
+{
+  "username": "test"
+}
+
+### 3.5 DELETE USER (Superadmin only)
+### Try as Regular User (should fail)
+DELETE {{host}}/api/users/{{createUser.response.body.data.id}}
+Authorization: Bearer {{userToken}}
+Content-Type: {{contentType}}
+
+### Try as Admin (should fail if roleMiddleware requires SUPERADMIN)
+DELETE {{host}}/api/users/{{createUser.response.body.data.id}}
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+### Try as Superadmin (should succeed)
+DELETE {{host}}/api/users/{{createUser.response.body.data.id}}
+Authorization: Bearer {{superadminToken}}
+Content-Type: {{contentType}}
+
+### Delete non-existent user
+DELETE {{host}}/api/users/999999
+Authorization: Bearer {{superadminToken}}
+Content-Type: {{contentType}}
+
+### 3.6 CHANGE USER STATUS (Admin/Superadmin only)
+### Try as Regular User (should fail)
+PUT {{host}}/api/users/{{userLogin.response.body.user.id}}/status
+Authorization: Bearer {{userToken}}
+Content-Type: {{contentType}}
+
+{
+  "status": "active"
+}
+
+### Try as Admin (should succeed if roleMiddleware allows ADMIN)
+PUT {{host}}/api/users/{{userLogin.response.body.user.id}}/status
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+{
+  "status": "active"
+}
+
+### Try as Superadmin (should succeed)
+PUT {{host}}/api/users/{{userLogin.response.body.user.id}}/status
+Authorization: Bearer {{superadminToken}}
+Content-Type: {{contentType}}
+
+{
+  "status": "inactive"
+}
+
+### Change status without status field
+PUT {{host}}/api/users/{{userLogin.response.body.user.id}}/status
+Authorization: Bearer {{superadminToken}}
+Content-Type: {{contentType}}
+
+{}
+
+##################################################
+### 4. ERROR SCENARIOS
+##################################################
+
+### Invalid token
+GET {{host}}/api/users
+Authorization: Bearer invalid-token-here
+Content-Type: {{contentType}}
+
+### Malformed authorization header
+GET {{host}}/api/users
+Authorization: Invalid Format
+Content-Type: {{contentType}}
+
+### No authorization header
+GET {{host}}/api/users
+Content-Type: {{contentType}}
+
+### SQL Injection attempt
+GET {{host}}/api/users/1 OR 1=1
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+### XSS attempt in update
+PUT {{host}}/api/users/{{userLogin.response.body.user.id}}
+Authorization: Bearer {{userToken}}
+Content-Type: {{contentType}}
+
+{
+  "username": "<script>alert('xss')</script>",
+  "email": "xss@example.com"
+}
+
+### Very long inputs
+PUT {{host}}/api/users/{{userLogin.response.body.user.id}}
+Authorization: Bearer {{userToken}}
+Content-Type: {{contentType}}
+
+{
+  "username": "a".repeat(1000),
+  "email": "a".repeat(1000) + "@example.com"
+}
+
+##################################################
+### 5. BATCH OPERATIONS (if needed)
+##################################################
+
+### Create multiple users at once (would need loop in REST client)
+# Not directly supported, but can be done with separate requests
+
+##################################################
+### 6. SEARCH AND FILTER (if endpoint exists)
+##################################################
+
+### Search users by email/username (if endpoint exists)
+GET {{host}}/api/users?search=regular
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+### Filter users by role (if endpoint exists)
+GET {{host}}/api/users?role=USER
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+### Pagination (if endpoint exists)
+GET {{host}}/api/users?page=1&limit=10
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}

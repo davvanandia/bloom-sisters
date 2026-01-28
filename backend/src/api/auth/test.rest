@@ -1,0 +1,175 @@
+
+@host = http://localhost:5000
+
+##################################################
+### TEST SMTP CONNECTION
+##################################################
+GET {{host}}/api/auth/email-test
+Content-Type: application/json
+
+##################################################
+### REGISTER NEW USER
+##################################################
+POST {{host}}/api/auth/register
+Content-Type: application/json
+
+{
+  "username": "testuser",
+  "email": "test@example.com",
+  "password": "password123"
+}
+
+##################################################
+### LOGIN USER - SUCCESS
+##################################################
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "test@example.com",
+  "password": "password123"
+}
+
+##################################################
+### LOGIN USER - INVALID CREDENTIALS
+##################################################
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "wrong@example.com",
+  "password": "wrongpassword"
+}
+
+##################################################
+### LOGIN USER - MISSING FIELDS
+##################################################
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "test@example.com"
+}
+
+##################################################
+### FORGOT PASSWORD - VALID EMAIL
+##################################################
+POST {{host}}/api/auth/forgot-password
+Content-Type: application/json
+
+{
+  "email": "test@example.com"
+}
+
+##################################################
+### FORGOT PASSWORD - INVALID EMAIL FORMAT
+##################################################
+POST {{host}}/api/auth/forgot-password
+Content-Type: application/json
+
+{
+  "email": "not-an-email"
+}
+
+##################################################
+### FORGOT PASSWORD - NON-EXISTENT EMAIL
+##################################################
+POST {{host}}/api/auth/forgot-password
+Content-Type: application/json
+
+{
+  "email": "nonexistent@example.com"
+}
+
+##################################################
+### VERIFY RESET TOKEN - VALID
+##################################################
+POST {{host}}/api/auth/verify-reset-token
+Content-Type: application/json
+
+{
+  "email": "test@example.com",
+  "token": "123456"
+}
+
+##################################################
+### VERIFY RESET TOKEN - INVALID
+##################################################
+POST {{host}}/api/auth/verify-reset-token
+Content-Type: application/json
+
+{
+  "email": "test@example.com",
+  "token": "wrongtoken"
+}
+
+##################################################
+### RESET PASSWORD - SUCCESS
+##################################################
+POST {{host}}/api/auth/reset-password
+Content-Type: application/json
+
+{
+  "email": "test@example.com",
+  "token": "123456",
+  "newPassword": "newpassword123"
+}
+
+##################################################
+### RESET PASSWORD - PASSWORD TOO SHORT
+##################################################
+POST {{host}}/api/auth/reset-password
+Content-Type: application/json
+
+{
+  "email": "test@example.com",
+  "token": "123456",
+  "newPassword": "123"
+}
+
+##################################################
+### RESET PASSWORD - EXPIRED TOKEN
+##################################################
+POST {{host}}/api/auth/reset-password
+Content-Type: application/json
+
+{
+  "email": "test@example.com",
+  "token": "expiredtoken",
+  "newPassword": "newpassword123"
+}
+
+##################################################
+### REGISTER USER - ALREADY EXISTS
+##################################################
+POST {{host}}/api/auth/register
+Content-Type: application/json
+
+{
+  "username": "testuser",
+  "email": "test@example.com",
+  "password": "password123"
+}
+
+##################################################
+### LOGIN WITH NEW PASSWORD
+##################################################
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "test@example.com",
+  "password": "newpassword123"
+}
+
+##################################################
+### REGISTER ADMIN USER
+##################################################
+POST {{host}}/api/auth/register
+Content-Type: application/json
+
+{
+  "username": "adminuser",
+  "email": "ganteng@example.com",
+  "password": "adminpass123"
+}
