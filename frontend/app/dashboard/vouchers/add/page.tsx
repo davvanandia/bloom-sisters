@@ -111,9 +111,9 @@ export default function AddVoucherPage() {
     } catch (error) {
       if (error instanceof z.ZodError) {
         const newErrors: Record<string, string> = {};
-        error.errors.forEach((err) => {
-          if (err.path[0]) {
-            newErrors[err.path[0] as string] = err.message;
+        (error as z.ZodError<any>).issues.forEach((err) => {
+          if (err.path && err.path[0]) {
+            newErrors[String(err.path[0])] = err.message;
           }
         });
         setErrors(newErrors);

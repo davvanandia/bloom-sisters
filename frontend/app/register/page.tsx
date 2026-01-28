@@ -311,7 +311,7 @@ export default function RegisterPage() {
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <FaUser className="h-5 w-5 text-gray-400" />
+                  <FaUser size={20} color="#9ca3af" />
                 </div>
                 <input
                   id="username"
@@ -336,7 +336,7 @@ export default function RegisterPage() {
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <FaEnvelope className="h-5 w-5 text-gray-400" />
+                  <FaEnvelope size={20} color="#9ca3af" />
                 </div>
                 <input
                   id="email"
@@ -370,7 +370,7 @@ export default function RegisterPage() {
               </div>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <FaLock className="h-5 w-5 text-gray-400" />
+                  <FaLock size={20} color="#9ca3af" />
                 </div>
                 <input
                   id="password"
@@ -391,9 +391,9 @@ export default function RegisterPage() {
                   disabled={loading}
                 >
                   {showPassword ? (
-                    <FaEyeSlash className="h-5 w-5 text-gray-400 hover:text-gray-600 transition-colors duration-300" />
+                    <FaEyeSlash size={20} color="#9ca3af" />
                   ) : (
-                    <FaEye className="h-5 w-5 text-gray-400 hover:text-gray-600 transition-colors duration-300" />
+                    <FaEye size={20} color="#9ca3af" />
                   )}
                 </button>
               </div>
@@ -428,7 +428,7 @@ export default function RegisterPage() {
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <FaLock className="h-5 w-5 text-gray-400" />
+                  <FaLock size={20} color="#9ca3af" />
                 </div>
                 <input
                   id="confirmPassword"
@@ -449,9 +449,9 @@ export default function RegisterPage() {
                   disabled={loading}
                 >
                   {showConfirmPassword ? (
-                    <FaEyeSlash className="h-5 w-5 text-gray-400 hover:text-gray-600 transition-colors duration-300" />
+                    <FaEyeSlash size={20} color="#9ca3af" />
                   ) : (
-                    <FaEye className="h-5 w-5 text-gray-400 hover:text-gray-600 transition-colors duration-300" />
+                    <FaEye size={20} color="#9ca3af" />
                   )}
                 </button>
               </div>
@@ -461,14 +461,18 @@ export default function RegisterPage() {
                 <div className="mt-2 flex items-center">
                   {formData.password === formData.confirmPassword ? (
                     <>
-                      <FaCheckCircle className="w-4 h-4 text-green-500 mr-2" />
+                      <div className="mr-2">
+                        <FaCheckCircle size={16} color="#10B981" />
+                      </div>
                       <span className="text-xs text-green-600">Kata sandi cocok</span>
                     </>
                   ) : (
                     <>
-                      <svg className="w-4 h-4 text-red-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                      </svg>
+                      <div className="mr-2">
+                        <svg className="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </div>
                       <span className="text-xs text-red-600">Kata sandi tidak cocok</span>
                     </>
                   )}
@@ -520,7 +524,9 @@ export default function RegisterPage() {
               disabled={loading}
               className="w-full inline-flex justify-center items-center py-3 px-4 border-2 border-gray-300 rounded-xl shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-400 transition-all duration-300 transform hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-pink-500"
             >
-              <FcGoogle className="w-5 h-5 mr-3" />
+              <div className="mr-3">
+                <FcGoogle size={20} />
+              </div>
               <span className="font-medium">Daftar dengan Google</span>
             </button>
           </div>

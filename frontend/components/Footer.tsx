@@ -58,7 +58,9 @@ export default function Footer() {
             </h3>
 
             <div className="flex gap-3 items-start">
-              <FaMapMarkerAlt className="text-pink-400 mt-1 shrink-0" />
+              <span className="text-pink-400 mt-1 shrink-0">
+                <FaMapMarkerAlt />
+              </span>
               <p className="text-sm text-gray-300">
                 Jalan Hankam Raya No.89, RT.7/RW.4,<br />
                 Cilangkap, Kec. Cipayung,<br />
@@ -68,7 +70,9 @@ export default function Footer() {
             </div>
 
             <div className="flex gap-3 items-center">
-              <FaPhone className="text-pink-400 shrink-0" />
+              <span className="text-pink-400 shrink-0">
+                <FaPhone />
+              </span>
               <a 
                 href="tel:+6287737714346" 
                 className="text-sm text-gray-300 hover:text-pink-400 transition-colors"
@@ -78,7 +82,9 @@ export default function Footer() {
             </div>
 
             <div className="flex gap-3 items-center">
-              <FaEnvelope className="text-pink-400 shrink-0" />
+              <span className="text-pink-400 shrink-0">
+                <FaEnvelope />
+              </span>
               <a 
                 href="mailto:bloomsisters5@gmail.com" 
                 className="text-sm text-gray-300 hover:text-pink-400 transition-colors break-all"

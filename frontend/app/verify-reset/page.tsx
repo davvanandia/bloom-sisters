@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 
-export default function VerifyResetPage() {
+function VerifyResetContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const email = searchParams.get('email') || '';
@@ -167,5 +167,27 @@ export default function VerifyResetPage() {
         </form>
       </div>
     </div>
+  );
+}
+
+export default function VerifyResetPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-b from-pink-50 to-white flex items-center justify-center py-12 px-4">
+        <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-2xl shadow-lg">
+          <div className="text-center">
+            <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+              Verify Reset Code
+            </h2>
+            <div className="flex justify-center items-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-pink-600"></div>
+            </div>
+            <p className="text-sm text-gray-600">Loading verification form...</p>
+          </div>
+        </div>
+      </div>
+    }>
+      <VerifyResetContent />
+    </Suspense>
   );
 }

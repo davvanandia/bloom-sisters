@@ -1,12 +1,13 @@
 'use client';
-import { useEffect, useState } from 'react';
+
+import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { clearCart } from '@/utils/cart';
 
-export default function OrderSuccessPage() {
+function OrderSuccessContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const orderId = searchParams.get('orderId');
@@ -195,5 +196,26 @@ export default function OrderSuccessPage() {
       
       <Footer />
     </div>
+  );
+}
+
+export default function OrderSuccessPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100">
+        <Header />
+        <div className="container mx-auto px-4 py-16">
+          <div className="max-w-2xl mx-auto text-center">
+            <div className="flex flex-col items-center justify-center min-h-[60vh]">
+              <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-pink-600 mb-4"></div>
+              <p className="text-gray-600">Memuat halaman konfirmasi...</p>
+            </div>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    }>
+      <OrderSuccessContent />
+    </Suspense>
   );
 }

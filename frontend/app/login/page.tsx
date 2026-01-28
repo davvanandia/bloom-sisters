@@ -305,7 +305,7 @@ export default function LoginPage() {
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <FaEnvelope className="h-5 w-5 text-gray-400" />
+                  <FaEnvelope size={20} color="#9ca3af" />
                 </div>
                 <input
                   id="email"
@@ -339,7 +339,7 @@ export default function LoginPage() {
               </div>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <FaLock className="h-5 w-5 text-gray-400" />
+                  <FaLock size={20} color="#9ca3af" />
                 </div>
                 <input
                   id="password"
@@ -360,9 +360,15 @@ export default function LoginPage() {
                   disabled={loading}
                 >
                   {showPassword ? (
-                    <FaEyeSlash className="h-5 w-5 text-gray-400 hover:text-gray-600 transition-colors duration-300" />
+                    <FaEyeSlash
+                      size={20}
+                      color="#9ca3af"
+                    />
                   ) : (
-                    <FaEye className="h-5 w-5 text-gray-400 hover:text-gray-600 transition-colors duration-300" />
+                    <FaEye
+                      size={20}
+                      color="#9ca3af"
+                    />
                   )}
                 </button>
               </div>
@@ -412,7 +418,9 @@ export default function LoginPage() {
               disabled={loading}
               className="w-full inline-flex justify-center items-center py-3 px-4 border-2 border-gray-300 rounded-xl shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-400 transition-all duration-300 transform hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-pink-500"
             >
-              <FcGoogle className="w-5 h-5 mr-3" />
+              <span className="mr-3 flex items-center">
+                <FcGoogle size={20} />
+              </span>
               <span className="font-medium">Masuk dengan Google</span>
             </button>
           </div>

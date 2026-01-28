@@ -74,7 +74,11 @@ export default function CheckoutPage() {
       const script = document.createElement('script');
       script.id = 'midtrans-snap-script';
       script.src = 'https://app.sandbox.midtrans.com/snap/snap.js';
-      script.setAttribute('data-client-key', MIDTRANS_CLIENT_KEY);
+      if (MIDTRANS_CLIENT_KEY) {
+        script.setAttribute('data-client-key', MIDTRANS_CLIENT_KEY!);
+      } else {
+        console.error('❌ MIDTRANS_CLIENT_KEY is undefined');
+      }
       script.async = true;
       
       script.onload = () => {
@@ -359,10 +363,13 @@ const handleSubmitOrder = async () => {
     localStorage.removeItem('checkout_items');
     localStorage.removeItem('florist_cart');
     
-    if (paymentResult.status === 'success') {
+    // Fix: Explicitly type paymentResult to avoid 'unknown' errors
+    const { status } = paymentResult as { status: string; result: any };
+
+    if (status === 'success') {
       console.log('✅ Payment completed successfully');
       router.push(`/order/success?orderId=${orderId}`);
-    } else if (paymentResult.status === 'pending') {
+    } else if (status === 'pending') {
       console.log('⏳ Payment is pending');
       router.push(`/order/pending?orderId=${orderId}`);
     }

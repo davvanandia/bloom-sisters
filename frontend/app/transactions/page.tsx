@@ -189,7 +189,9 @@ export default function TransactionsPage() {
         // Keep only last 10 cache entries to avoid memory issues
         if (orderCache.size > 10) {
           const firstKey = orderCache.keys().next().value;
-          orderCache.delete(firstKey);
+          if (typeof firstKey === 'string') {
+            orderCache.delete(firstKey);
+          }
         }
 
         setOrders(data.data);
